@@ -35,6 +35,14 @@ internal fun BlockRenderer(
     modifier: Modifier = Modifier,
 ) {
     val directiveRegistry = LocalMarkdownDirectiveRegistry.current
+    if (node is MathBlock) {
+        MathBlockRenderer(
+            latex = node.literal,
+            modifier = modifier,
+        )
+        return
+    }
+
     key(renderRevision) {
         when (node) {
             is Heading -> HeadingRenderer(node, modifier)
@@ -62,7 +70,6 @@ internal fun BlockRenderer(
             is ListBlock -> ListBlockRenderer(node, modifier)
             is HtmlBlock -> HtmlBlockRenderer(node, modifier)
             is Table -> TableRenderer(node, modifier)
-            is MathBlock -> MathBlockRenderer(node, modifier)
             is Admonition -> AdmonitionRenderer(node, modifier)
             is CustomContainer -> CustomContainerRenderer(node, modifier)
             is DiagramBlock -> DiagramBlockRenderer(node, modifier)
@@ -133,6 +140,11 @@ internal fun blockRenderRevision(node: Node): Long = when (node) {
     is IndentedCodeBlock -> revisionHash(
         node.lineRange.endLine.toLong(),
         node.contentHash,
+        node.literal.length.toLong(),
+    )
+    is MathBlock -> revisionHash(
+        node.lineRange.endLine.toLong(),
+        node.literal.hashCode().toLong(),
         node.literal.length.toLong(),
     )
     is BlockQuote -> revisionHash(

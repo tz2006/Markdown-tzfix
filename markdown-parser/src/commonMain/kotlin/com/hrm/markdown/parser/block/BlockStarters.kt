@@ -449,20 +449,21 @@ internal class BlockStarters(
         cursor.advance()
         cursor.advance()
         val rest = cursor.rest().trim()
-        // 如果同一行有内容且以 $$ 结尾，则为单行数学块
-        if (rest.endsWith("$$") && rest.length > 2) {
-            val content = rest.dropLast(2)
+        // 如果同一行内找到闭合 $$，则为单行数学块，闭合后的内容保留为后续段落。
+        val closingIndex = rest.indexOf("$$")
+        if (closingIndex > 0) {
+            val content = rest.substring(0, closingIndex)
+            val trailing = rest.substring(closingIndex + 2)
             val block = MathBlock(literal = content)
             block.lineRange = LineRange(lineIdx, lineIdx + 1)
-            return OpenBlock(block, lastLineIndex = lineIdx)
+            val ob = OpenBlock(block, contentStartLine = lineIdx, lastLineIndex = lineIdx)
+            ob.trailingContent = trailing
+            return ob
         }
 
         val block = MathBlock()
         block.lineRange = LineRange(lineIdx, lineIdx + 1)
         val ob = OpenBlock(block, contentStartLine = lineIdx, lastLineIndex = lineIdx)
-        if (rest.isNotEmpty()) {
-            ob.contentLines.add(rest)
-        }
         return ob
     }
 

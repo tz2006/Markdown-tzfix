@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import com.hrm.latex.renderer.Latex
 import com.hrm.latex.renderer.measure.rememberLatexMeasurer
 import com.hrm.latex.renderer.model.LatexConfig
-import com.hrm.markdown.parser.ast.MathBlock
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 
 /**
@@ -31,11 +30,11 @@ import com.hrm.markdown.renderer.LocalMarkdownTheme
  */
 @Composable
 internal fun MathBlockRenderer(
-    node: MathBlock,
+    latex: String,
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val latex = node.literal.trim()
+    val trimmedLatex = latex.trim()
     // 将 color 和 darkColor 统一设为 mathColor，
     // 避免 Latex 组件内部 isSystemInDarkTheme() 选错颜色导致文字与背景色对比度不足
     val config = LatexConfig(
@@ -47,7 +46,7 @@ internal fun MathBlockRenderer(
     // 使用 LatexMeasurer 精确测量公式高度，避免容器产生多余空白
     val latexMeasurer = rememberLatexMeasurer(config)
     val density = LocalDensity.current
-    val dims = latexMeasurer.measure(latex, config)
+    val dims = latexMeasurer.measure(trimmedLatex, config)
 
     val heightModifier = if (dims != null) {
         val heightDp = with(density) { dims.heightPx.toDp() }
@@ -73,7 +72,7 @@ internal fun MathBlockRenderer(
                 contentAlignment = Alignment.Center,
             ) {
                 Latex(
-                    latex = latex,
+                    latex = trimmedLatex,
                     modifier = heightModifier,
                     config = config,
                 )

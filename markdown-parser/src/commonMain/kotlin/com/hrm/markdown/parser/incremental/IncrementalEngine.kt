@@ -379,12 +379,12 @@ class IncrementalEngine(
             newDoc.appendChild(child)
         }
 
-        val reusedStableBlocks = reuseFencedCodeBlockInstances(nowStable, oldChildren)
+        val reusedStableBlocks = reuseStreamingBlockInstances(nowStable, oldChildren)
         for (block in reusedStableBlocks) {
             newDoc.appendChild(block)
         }
 
-        val reusedDisplayBlocks = reuseFencedCodeBlockInstances(displayBlocks, oldChildren)
+        val reusedDisplayBlocks = reuseStreamingBlockInstances(displayBlocks, oldChildren)
         for (block in reusedDisplayBlocks) {
             newDoc.appendChild(block)
         }
@@ -418,40 +418,64 @@ class IncrementalEngine(
      * 同 startLine + 同类型的旧节点实例。若找到，将新解析的属性写入旧实例并返回旧实例，
      * 使 Compose 的 === 引用比较判断为同一对象，跳过不必要的重组。
      *
-     * 仅对 FencedCodeBlock 做复用（只有代码块在流式场景中会因反复重解析导致抖动）。
-     * 其他类型直接返回新实例。
+     * 对内部渲染器带状态的块做复用，避免外层替换节点导致 Compose 子树被卸载重建。
      */
-    private fun reuseFencedCodeBlockInstances(
+    private fun reuseStreamingBlockInstances(
         displayBlocks: List<Node>,
         oldChildren: List<Node>,
     ): List<Node> {
         if (displayBlocks.isEmpty() || oldChildren.isEmpty()) return displayBlocks
 
         return displayBlocks.map { newBlock ->
-            if (newBlock !is FencedCodeBlock) return@map newBlock
-
-            val oldBlock = oldChildren.find { old ->
-                old is FencedCodeBlock &&
-                        old.lineRange.startLine == newBlock.lineRange.startLine
-            } as? FencedCodeBlock ?: return@map newBlock
-
-            // 将新解析的属性写入旧实例，保持对象引用不变
-            oldBlock.literal = newBlock.literal
-            oldBlock.lineRange = newBlock.lineRange
-            oldBlock.sourceRange = newBlock.sourceRange
-            oldBlock.contentHash = newBlock.contentHash
-            oldBlock.info = newBlock.info
-            oldBlock.language = newBlock.language
-            oldBlock.fenceChar = newBlock.fenceChar
-            oldBlock.fenceLength = newBlock.fenceLength
-            oldBlock.fenceIndent = newBlock.fenceIndent
-            oldBlock.attributes = newBlock.attributes
-            oldBlock.highlightLines = newBlock.highlightLines
-            oldBlock.showLineNumbers = newBlock.showLineNumbers
-            oldBlock.startLineNumber = newBlock.startLineNumber
-            oldBlock.parent = null
-            oldBlock
+            when (newBlock) {
+                is FencedCodeBlock -> reuseFencedCodeBlockInstance(newBlock, oldChildren)
+                is MathBlock -> reuseMathBlockInstance(newBlock, oldChildren)
+                else -> newBlock
+            }
         }
+    }
+
+    private fun reuseFencedCodeBlockInstance(
+        newBlock: FencedCodeBlock,
+        oldChildren: List<Node>,
+    ): Node {
+        val oldBlock = oldChildren.find { old ->
+            old is FencedCodeBlock &&
+                    old.lineRange.startLine == newBlock.lineRange.startLine
+        } as? FencedCodeBlock ?: return newBlock
+
+        oldBlock.literal = newBlock.literal
+        oldBlock.lineRange = newBlock.lineRange
+        oldBlock.sourceRange = newBlock.sourceRange
+        oldBlock.contentHash = newBlock.contentHash
+        oldBlock.info = newBlock.info
+        oldBlock.language = newBlock.language
+        oldBlock.fenceChar = newBlock.fenceChar
+        oldBlock.fenceLength = newBlock.fenceLength
+        oldBlock.fenceIndent = newBlock.fenceIndent
+        oldBlock.attributes = newBlock.attributes
+        oldBlock.highlightLines = newBlock.highlightLines
+        oldBlock.showLineNumbers = newBlock.showLineNumbers
+        oldBlock.startLineNumber = newBlock.startLineNumber
+        oldBlock.parent = null
+        return oldBlock
+    }
+
+    private fun reuseMathBlockInstance(
+        newBlock: MathBlock,
+        oldChildren: List<Node>,
+    ): Node {
+        val oldBlock = oldChildren.find { old ->
+            old is MathBlock &&
+                    old.lineRange.startLine == newBlock.lineRange.startLine
+        } as? MathBlock ?: return newBlock
+
+        oldBlock.literal = newBlock.literal
+        oldBlock.lineRange = newBlock.lineRange
+        oldBlock.sourceRange = newBlock.sourceRange
+        oldBlock.contentHash = newBlock.contentHash
+        oldBlock.parent = null
+        return oldBlock
     }
 
     // ────── 块稳定性分类 ──────

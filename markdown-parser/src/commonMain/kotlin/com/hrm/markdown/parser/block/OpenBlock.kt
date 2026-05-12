@@ -27,4 +27,7 @@ class OpenBlock(
 
     /** 创建此块的开启器标签（用于注册制匹配） */
     var starterTag: String? = null
+
+    /** 当前行内自包含块闭合标记之后剩余的文本。 */
+    var trailingContent: String? = null
 }

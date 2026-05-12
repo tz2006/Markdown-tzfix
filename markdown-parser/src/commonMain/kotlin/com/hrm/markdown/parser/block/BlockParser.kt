@@ -351,6 +351,12 @@ class BlockParser(
 
                 parent.appendChild(newBlock.node)
                 openBlocks.add(newBlock)
+                if (isSelfContainedBlock(newBlock)) {
+                    finalizeBlock(newBlock)
+                    openBlocks.removeAt(openBlocks.size - 1)
+                    appendTrailingParagraph(parent, newBlock, lineIdx)
+                    return
+                }
                 lastMatched = newBlock
                 blockStarted = true
             }
@@ -358,6 +364,20 @@ class BlockParser(
 
         // 第四阶段：将行添加到当前块
         addLineToTip(lastMatched, cursor, lineIdx)
+    }
+
+    private fun isSelfContainedBlock(block: OpenBlock): Boolean {
+        return block.node is MathBlock && block.node.literal.isNotEmpty()
+    }
+
+    private fun appendTrailingParagraph(parent: ContainerNode, block: OpenBlock, lineIdx: Int) {
+        val trailing = block.trailingContent?.trimStart()
+        if (trailing.isNullOrBlank()) return
+
+        val paragraph = Paragraph()
+        paragraph.rawContent = trailing
+        paragraph.lineRange = LineRange(lineIdx, lineIdx + 1)
+        parent.appendChild(paragraph)
     }
 
     /**
@@ -761,7 +781,9 @@ class BlockParser(
                 // ATX 标题内容已在解析时捕获
             }
             is MathBlock -> {
-                tip.contentLines.add(lineContent)
+                val content = if (lineIdx == tip.contentStartLine) lineContent.trimStart() else lineContent
+                if (lineIdx == tip.contentStartLine && content.isEmpty()) return
+                tip.contentLines.add(content)
             }
             is FrontMatter -> {
                 val trimmed = source.lineContent(lineIdx).trim()

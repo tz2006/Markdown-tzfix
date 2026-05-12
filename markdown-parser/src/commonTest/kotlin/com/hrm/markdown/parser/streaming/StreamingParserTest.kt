@@ -5,6 +5,7 @@ import com.hrm.markdown.parser.ast.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 
@@ -123,6 +124,30 @@ class StreamingParserTest {
         val mathBlock = blocks.find { it is MathBlock }
         assertIs<MathBlock>(mathBlock)
         assertTrue(mathBlock.literal.contains("\\int_0^1"))
+        parser.endStream()
+    }
+
+    @Test
+    fun should_reuse_math_block_instance_during_streaming_append() {
+        val parser = MarkdownParser()
+        parser.beginStream()
+
+        val firstDoc = parser.append("$$ x")
+        val firstMath = firstDoc.children.firstOrNull { it !is BlankLine }
+        assertIs<MathBlock>(firstMath)
+
+        val secondDoc = parser.append(" + y")
+        val secondMath = secondDoc.children.firstOrNull { it !is BlankLine }
+        assertIs<MathBlock>(secondMath)
+        assertSame(firstMath, secondMath)
+        assertEquals("x + y", secondMath.literal)
+
+        val closedDoc = parser.append(" $$\nnext")
+        val closedMath = closedDoc.children.firstOrNull { it !is BlankLine }
+        assertIs<MathBlock>(closedMath)
+        assertSame(firstMath, closedMath)
+        assertEquals("x + y ", closedMath.literal)
+
         parser.endStream()
     }
 

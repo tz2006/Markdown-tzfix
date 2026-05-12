@@ -50,7 +50,7 @@ internal val streamingPreviewGroups = listOf(
         )
     ),
     PreviewGroup(
-        id = "streaming_issues",
+        id = "streaming_issues_19",
         title = "Issues",
         description = "问题复现与回归验证示例",
         items = listOf(
@@ -59,6 +59,24 @@ internal val streamingPreviewGroups = listOf(
                 title = "Issue #19 列表闪烁回归",
                 markdown = issue19MarkdownString(),
                 content = { Issue19StreamingDemo() }
+            ),
+        )
+    ),
+    PreviewGroup(
+        id = "streaming_issues_20",
+        title = "Issues_20",
+        description = "问题复现与回归验证示例",
+        items = listOf(
+            PreviewItem(
+                id = "streaming_issue_20_list_flicker",
+                title = "Issue #20 列表闪烁回归",
+                markdown = issues20MarkdownString(),
+                content = {
+                    StringStreamingMarkdownDemo(
+                        markdown = issues20MarkdownString(),
+                        emptyHint = "该示例复现 Issue #20 "
+                    )
+                }
             ),
         )
     ),
@@ -241,6 +259,79 @@ private fun StringStreamingMarkdownDemo(
         scrollState.animateScrollTo(scrollState.maxValue)
     }
 }
+
+private fun issues20MarkdownString(): String = """
+# Markdown KMP 测试
+
+这是一个 **MarkdownKmpText** 组件的测试页面。
+
+
+已知投掷实心球的轨迹是抛物线，高度${'$'}y${'$'}关于水平距离${'$'}x${'$'}的函数为二次函数，设函数为
+$$ y = a(x - h)^2 + k $$
+其中，$(h, k)${'$'}为抛物线顶点坐标。
+
+为什么抛物线的函数可以表示为 y = a(x - h)^2 + k ？
+
+二次函数的解析式有3个参数，顶点式中顶点提供了两个参数，知道另一个点即可确定唯一的函数。
+
+题目中已知最高点（顶点）坐标为$(3, 4.5)$，起点高度为1.5，起点的水平距离为0，即函数过点$(0, 1.5)$。
+代入函数表达式：
+$$ y = a(x - 3)^2 + 4.5 $$
+将点$(0, 1.5)${'$'}代入：
+$$ 1.5 = a(0 - 3)^2 + 4.5 \implies 1.5 = 9a + 4.5 $$
+解得：
+$$ 9a = 1.5 - 4.5 = -3 \implies a = -\frac{1}{3} $$
+因此，函数解析式为：
+$$ y = -\frac{1}{3}(x - 3)^2 + 4.5 $$
+
+根据评分标准，满分条件是实心球从起点到落点的水平距离不小于4米。
+当实心球落地时，高度为0，令函数等于0：
+$$ 0 = -\frac{1}{3}(x - 3)^2 + 4.5 \implies (x - 3)^2 = 13.5 $$
+解得两根：
+$$ x = 3 \pm \sqrt{13.5} \approx 3 \pm 3.67 $$
+水平距离分别为：
+$$ x_1 \approx -0.67 $$（舍掉，因不合理）
+$$ x_2 \approx 6.67 $$
+实际水平距离为：
+$$ 6.67 - 0 = 6.67 \text{米} $$
+因为6.67大于4米，说明实心球水平距离满足评分标准。
+但是题目解析中判断该生不能得满分，可能因为题中评分标准或条件不同，请仔细核对后给出结论。
+（注：解析中落地点求值误差或阅读需谨慎）
+
+第二次投掷的函数为：
+$$ y = -\frac{1}{4}x^2 + 2 $$
+落地点时，令高度为0：
+$$ 0 = -\frac{1}{4}x^2 + 2 \implies x^2 = 8 \implies x = \pm 2\sqrt{2} $$
+水平距离为两根的差的绝对值：
+$$ 2\sqrt{2} - (-2\sqrt{2}) = 4\sqrt{2} \approx 5.66 \text{米} $$
+
+（1）第一次投掷抛物线解析式为
+$$ y = -\frac{1}{3}(x - 3)^2 + 4.5 $$
+（2）根据函数，实心球落地的水平距离约为6.67米，满足满分要求，因此理论上应得满分。
+（3）第二次投掷的水平距离为约5.66米。
+
+## 功能特性
+
+- 支持完整的 CommonMark 规范
+- 支持 LaTeX 数学公式: ${'$'}E = mc^2$
+- 支持代码块:
+
+```kotlin
+fun main() {
+println("Hello, World!")
+}
+```
+
+## 列表示例
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+> 这是一个引用块
+
+[链接示例](https://github.com/huarangmeng/Markdown)
+""".trimIndent()
 
 private fun issue19MarkdownString(): String = """
 

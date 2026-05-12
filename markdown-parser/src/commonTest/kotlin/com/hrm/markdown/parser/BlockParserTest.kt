@@ -643,6 +643,36 @@ class MathBlockParserTest {
         val math = doc.children.first()
         assertIs<MathBlock>(math)
     }
+
+    @Test
+    fun should_continue_after_single_line_math() {
+        val doc = parser.parse("before\n$$ E = mc^2 $$\nafter")
+
+        assertEquals(3, doc.children.size)
+        assertIs<Paragraph>(doc.children[0])
+        assertIs<MathBlock>(doc.children[1])
+        val after = doc.children[2]
+        assertIs<Paragraph>(after)
+        assertEquals("after", (after.children.first() as Text).literal)
+    }
+
+    @Test
+    fun should_preserve_trailing_text_after_single_line_math() {
+        val doc = parser.parse("水平距离分别为：\n$$ x_1 \\approx -0.67 $$（舍掉，因不合理）\n$$ x_2 \\approx 6.67 $$\n实际水平距离为：")
+
+        assertEquals(5, doc.children.size)
+        val firstMath = doc.children[1]
+        assertIs<MathBlock>(firstMath)
+        assertEquals("x_1 \\approx -0.67 ", firstMath.literal)
+
+        val trailing = doc.children[2]
+        assertIs<Paragraph>(trailing)
+        assertEquals("（舍掉，因不合理）", (trailing.children.first() as Text).literal)
+
+        val secondMath = doc.children[3]
+        assertIs<MathBlock>(secondMath)
+        assertEquals("x_2 \\approx 6.67 ", secondMath.literal)
+    }
 }
 
 class FrontMatterParserTest {

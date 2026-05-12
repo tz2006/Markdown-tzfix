@@ -23,11 +23,14 @@ internal class MathBlockStarter : BlockStarter {
         cursor.advance()
         cursor.advance()
         val rest = cursor.rest().trim()
-        if (rest.endsWith("$$") && rest.length > 2) {
-            val content = rest.dropLast(2)
+        val closingIndex = rest.indexOf("$$")
+        if (closingIndex > 0) {
+            val content = rest.substring(0, closingIndex)
+            val trailing = rest.substring(closingIndex + 2)
             val block = MathBlock(literal = content)
             block.lineRange = LineRange(lineIdx, lineIdx + 1)
-            val ob = OpenBlock(block, lastLineIndex = lineIdx)
+            val ob = OpenBlock(block, contentStartLine = lineIdx, lastLineIndex = lineIdx)
+            ob.trailingContent = trailing
             ob.starterTag = this::class.simpleName
             return ob
         }
@@ -35,9 +38,6 @@ internal class MathBlockStarter : BlockStarter {
         val block = MathBlock()
         block.lineRange = LineRange(lineIdx, lineIdx + 1)
         val ob = OpenBlock(block, contentStartLine = lineIdx, lastLineIndex = lineIdx)
-        if (rest.isNotEmpty()) {
-            ob.contentLines.add(rest)
-        }
         ob.starterTag = this::class.simpleName
         return ob
     }
