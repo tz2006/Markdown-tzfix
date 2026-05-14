@@ -65,6 +65,15 @@ class FootnoteNavigationStateTest {
         state.rememberReturnPosition("note", 256)
 
         assertTrue(state.hasReturnPosition("note"))
-        assertEquals(256, state.getReturnPosition("note"))
+        assertEquals(FootnoteReturnPosition.Scroll(256), state.getReturnPosition("note"))
+    }
+
+    @Test
+    fun should_store_lazy_list_return_position_for_label() {
+        val state = FootnoteNavigationState()
+
+        state.rememberLazyListPosition("note", index = 12, offset = 48)
+
+        assertEquals(FootnoteReturnPosition.LazyList(index = 12, offset = 48), state.getReturnPosition("note"))
     }
 }

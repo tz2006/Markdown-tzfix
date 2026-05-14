@@ -1,53 +1,19 @@
 package com.hrm.markdown.renderer
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import com.hrm.codehigh.theme.CodeTheme
-import com.hrm.markdown.parser.MarkdownParser
-import com.hrm.markdown.parser.ast.BlankLine
-import com.hrm.markdown.parser.ast.ContainerNode
 import com.hrm.markdown.parser.ast.Document
-import com.hrm.markdown.parser.ast.HardLineBreak
-import com.hrm.markdown.parser.ast.InlineCode
-import com.hrm.markdown.parser.ast.Node
-import com.hrm.markdown.parser.ast.SoftLineBreak
-import com.hrm.markdown.parser.ast.Text
-import com.hrm.markdown.parser.log.HLog
-import com.hrm.markdown.renderer.block.BlockRenderer
-import com.hrm.markdown.renderer.block.blockRenderRevision
 import com.hrm.markdown.runtime.MarkdownDirectivePlugin
 import com.hrm.markdown.runtime.MarkdownDirectiveRegistry
 import com.hrm.markdown.runtime.MarkdownDirectivePipeline
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-private const val TAG_RENDER = "MarkdownRender"
 
 /**
  * Markdown 渲染器的顶层 Composable 入口。
@@ -81,6 +47,7 @@ private const val TAG_RENDER = "MarkdownRender"
  * @param scrollState 滚动状态，外部可控制滚动位置
  * @param enablePagination 是否启用分页加载，适合超长文档（> 500 段落）
  * @param enableScroll 是否启用 Markdown 内部滚动容器
+ * @param enableSelection 是否启用文本选择。关闭后会在非流式场景自动切换为 LazyColumn 渲染长文档
  * @param initialBlockCount 分页模式下初始渲染的块数量
  * @param header Markdown 内容前方插槽，会和正文处于同一滚动容器中
  * @param footer Markdown 内容后方插槽，会和正文处于同一滚动容器中
@@ -99,6 +66,7 @@ fun Markdown(
     isStreaming: Boolean = false,
     enablePagination: Boolean = false,
     enableScroll: Boolean = true,
+    enableSelection: Boolean = true,
     initialBlockCount: Int = 100,
     header: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
@@ -118,11 +86,9 @@ fun Markdown(
 
     if (document == null) {
         if (effectiveStreaming) return
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        MarkdownLoading(modifier = modifier)
     } else {
-        InnerMarkdown(
+        MarkdownDocumentRenderer(
             document = document,
             modifier = modifier,
             theme = theme,
@@ -132,6 +98,7 @@ fun Markdown(
             isStreaming = effectiveStreaming,
             enablePagination = enablePagination,
             enableScroll = enableScroll,
+            enableSelection = enableSelection,
             initialBlockCount = initialBlockCount,
             header = header,
             footer = footer,
@@ -152,6 +119,7 @@ fun Markdown(
  * @param scrollState 滚动状态，外部可控制滚动位置
  * @param enablePagination 是否启用分页加载，适合超长文档（> 500 段落）
  * @param enableScroll 是否启用 Markdown 内部滚动容器
+ * @param enableSelection 是否启用文本选择。关闭后会在非流式场景自动切换为 LazyColumn 渲染长文档
  * @param initialBlockCount 分页模式下初始渲染的块数量
  * @param header Markdown 内容前方插槽，会和正文处于同一滚动容器中
  * @param footer Markdown 内容后方插槽，会和正文处于同一滚动容器中
@@ -170,6 +138,7 @@ fun Markdown(
     isStreaming: Boolean = false,
     enablePagination: Boolean = false,
     enableScroll: Boolean = true,
+    enableSelection: Boolean = true,
     initialBlockCount: Int = 100,
     header: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
@@ -178,7 +147,7 @@ fun Markdown(
     directivePlugins: List<MarkdownDirectivePlugin> = emptyList(),
 ) {
     val directiveRegistry = remember(directivePlugins) { MarkdownDirectiveRegistry(directivePlugins) }
-    InnerMarkdown(
+    MarkdownDocumentRenderer(
         document = document,
         modifier = modifier,
         theme = theme,
@@ -188,6 +157,7 @@ fun Markdown(
         isStreaming = isStreaming,
         enablePagination = enablePagination,
         enableScroll = enableScroll,
+        enableSelection = enableSelection,
         initialBlockCount = initialBlockCount,
         header = header,
         footer = footer,
@@ -197,348 +167,11 @@ fun Markdown(
     )
 }
 
-/**
- * 流式文档解析状态。
- * - 流式模式：增量追加解析，避免闪烁
- * - 非流式模式：全量异步解析
- */
 @Composable
-private fun rememberStreamingDocument(
-    markdown: String,
-    isStreaming: Boolean,
-    config: MarkdownConfig = MarkdownConfig.Default,
-    runtimePipeline: MarkdownDirectivePipeline = MarkdownDirectivePipeline(MarkdownDirectiveRegistry.Empty),
-): Document? {
-    val parser = remember(config) {
-        MarkdownParser(
-            flavour = config.flavour,
-            customEmojiMap = config.customEmojiMap,
-            enableAsciiEmoticons = config.enableAsciiEmoticons,
-            enableLinting = config.enableLinting,
-            appendCoalesceThreshold = config.appendCoalesceThreshold,
-        )
-    }
-    var state by remember(parser, runtimePipeline) { mutableStateOf(StreamingDocumentState<Document>()) }
-
-    LaunchedEffect(markdown, isStreaming, parser, runtimePipeline) {
-        state = updateStreamingDocumentState(
-            markdown = markdown,
-            isStreaming = isStreaming,
-            state = state,
-            beginStream = parser::beginStream,
-            append = parser::append,
-            endStream = parser::endStream,
-            parse = { value ->
-                withContext(Dispatchers.Default) {
-                    parser.parse(runtimePipeline.transform(value).markdown)
-                }
-            }
-        )
-    }
-
-    return state.document
-}
-
-internal data class StreamingDocumentState<T>(
-    val lastParsedLength: Int = 0,
-    val document: T? = null,
-    val wasStreaming: Boolean = false,
-    val lastNonStreamingMarkdown: String = "",
-)
-
-internal suspend fun <T> updateStreamingDocumentState(
-    markdown: String,
-    isStreaming: Boolean,
-    state: StreamingDocumentState<T>,
-    beginStream: () -> Unit,
-    append: (String) -> T,
-    endStream: () -> T,
-    parse: suspend (String) -> T?,
-): StreamingDocumentState<T> {
-    var nextState = state
-
-    if (isStreaming && !nextState.wasStreaming) {
-        beginStream()
-        nextState = nextState.copy(
-            lastParsedLength = 0,
-            document = null,
-            wasStreaming = true,
-        )
-    }
-
-    if (isStreaming) {
-        if (markdown.length > nextState.lastParsedLength) {
-            val chunk = markdown.substring(nextState.lastParsedLength)
-            if (chunk.isNotEmpty()) {
-                nextState = nextState.copy(
-                    document = append(chunk),
-                    lastParsedLength = markdown.length,
-                )
-            }
-        }
-        return nextState.copy(wasStreaming = true)
-    }
-
-    if (nextState.wasStreaming) {
-        if (markdown.length > nextState.lastParsedLength) {
-            val chunk = markdown.substring(nextState.lastParsedLength)
-            if (chunk.isNotEmpty()) {
-                nextState = nextState.copy(
-                    document = append(chunk),
-                    lastParsedLength = markdown.length,
-                )
-            }
-        }
-        return nextState.copy(
-            document = endStream(),
-            lastParsedLength = markdown.length,
-            wasStreaming = false,
-            lastNonStreamingMarkdown = markdown,
-        )
-    }
-
-    if (markdown == nextState.lastNonStreamingMarkdown) {
-        return nextState.copy(wasStreaming = false)
-    }
-
-    return nextState.copy(
-        document = parse(markdown),
-        lastParsedLength = markdown.length,
-        wasStreaming = false,
-        lastNonStreamingMarkdown = markdown,
-    )
-}
-
-@Composable
-private fun InnerMarkdown(
-    document: Document,
-    modifier: Modifier = Modifier,
-    theme: MarkdownTheme = MarkdownTheme.auto(),
-    codeTheme: CodeTheme? = null,
-    config: MarkdownConfig = MarkdownConfig.Default,
-    scrollState: ScrollState = rememberScrollState(),
-    isStreaming: Boolean = false,
-    enablePagination: Boolean = false,
-    enableScroll: Boolean = true,
-    initialBlockCount: Int = 100,
-    header: (@Composable () -> Unit)? = null,
-    footer: (@Composable () -> Unit)? = null,
-    imageContent: MarkdownImageRenderer? = null,
-    onLinkClick: ((String) -> Unit)? = null,
-    directiveRegistry: MarkdownDirectiveRegistry = MarkdownDirectiveRegistry.Empty,
-) {
-    val latestDocument by rememberUpdatedState(document)
-    var throttledDocument by remember { mutableStateOf(document) }
-
-    LaunchedEffect(isStreaming) {
-        if (!isStreaming) {
-            throttledDocument = latestDocument
-            return@LaunchedEffect
-        }
-
-        while (true) {
-            withFrameNanos { }
-            delay(16L)
-            val upstream = latestDocument
-            if (upstream !== throttledDocument) {
-                throttledDocument = upstream
-            }
-        }
-    }
-
-    // 仅在流式期间使用节流后的 document；流结束后直接消费最终 document，
-    // 避免 endStream() 后 renderer 仍停留在旧的流式快照。
-    val renderDocument = if (isStreaming) throttledDocument else document
-
-    // 使用结构性比较缓存 blockNodes：
-    // 每次 token 到达都产生新的 Document 对象，但大部分 children 的引用没变。
-    // 流式期间仅在块结构变化，或同一块的 renderRevision 变化时才刷新状态，
-    // 避免每个 token 都强制推整列 blockNodes。
-    val blockNodesState = remember { mutableStateOf(emptyList<Node>(), neverEqualPolicy()) }
-    val blockNodeRevisionsState = remember { mutableStateOf(emptyList<Long>()) }
-    val newChildren = renderDocument.children
-    val newFiltered = newChildren.filter { it !is BlankLine }
-    val currentList = blockNodesState.value
-    val newRevisions = newFiltered.map(::blockRenderRevision)
-    val shouldRefreshBlockNodes = !structurallyEqual(currentList, newFiltered) ||
-            !revisionsEqual(blockNodeRevisionsState.value, newRevisions)
-    if (shouldRefreshBlockNodes) {
-        HLog.d(TAG_RENDER) { "blockNodes updated: ${currentList.size} -> ${newFiltered.size}" }
-        blockNodesState.value = newFiltered.toList()
-        blockNodeRevisionsState.value = newRevisions
-    }
-
-    val blockNodes = blockNodesState.value
-    val paginationStateKey = if (enablePagination && !isStreaming) document else Unit
-    // P1: 分页加载支持 - 渐进式渲染超长文档
-    var visibleBlockCount by remember(paginationStateKey, initialBlockCount) {
-        mutableIntStateOf(initialVisibleBlockCount(initialBlockCount, blockNodes.size))
-    }
-    val effectiveVisibleBlockCount = visibleBlockCount.coerceAtMost(blockNodes.size)
-
-    // 监听滚动位置，接近底部时自动加载更多块
-    LaunchedEffect(scrollState, enablePagination, blockNodes.size) {
-        if (!enablePagination) return@LaunchedEffect
-
-        snapshotFlow {
-            if (scrollState.maxValue > 0) {
-                scrollState.value.toFloat() / scrollState.maxValue.toFloat()
-            } else {
-                0f
-            }
-        }.collect { scrollProgress ->
-            // 滚动到 80% 时加载下一批
-            if (scrollProgress > 0.8f && visibleBlockCount < blockNodes.size) {
-                val increment = 50 // 每次加载 50 个块
-                visibleBlockCount = (visibleBlockCount + increment).coerceAtMost(blockNodes.size)
-            }
-        }
-    }
-
-    // 计算实际渲染的块列表
-    // Use a plain expression here to ensure pagination-related inputs are always reflected.
-    val renderBlocks: List<Node> = run {
-        val nodes = blockNodesState.value
-        if (!enablePagination || effectiveVisibleBlockCount >= nodes.size) return@run nodes
-        if (effectiveVisibleBlockCount <= 0) return@run emptyList()
-        nodes.subList(0, effectiveVisibleBlockCount)
-    }
-
-    val footnoteNavigationState = remember { FootnoteNavigationState() }
-    val coroutineScope = rememberCoroutineScope()
-    val currentOnLinkClick = rememberUpdatedState(onLinkClick)
-    val currentBlockCount = rememberUpdatedState(blockNodes.size)
-    val onFootnoteClick = remember(footnoteNavigationState, enablePagination) {
-        { label: String ->
-            coroutineScope.launch {
-                footnoteNavigationState.rememberReturnPosition(label, scrollState.value)
-
-                if (enablePagination && !footnoteNavigationState.hasDefinition(label)) {
-                    visibleBlockCount = currentBlockCount.value
-                    withFrameNanos { }
-                }
-
-                if (!footnoteNavigationState.bringDefinitionIntoView(label)) {
-                    currentOnLinkClick.value?.invoke("#fn-$label")
-                }
-            }
-            Unit
-        }
-    }
-    val onFootnoteBackClick = remember(footnoteNavigationState) {
-        { label: String ->
-            coroutineScope.launch {
-                val returnPosition = footnoteNavigationState.getReturnPosition(label)
-                if (returnPosition != null && enableScroll) {
-                    scrollState.animateScrollTo(returnPosition)
-                }
-            }
-            Unit
-        }
-    }
-
-    ProvideMarkdownTheme(theme) {
-        ProvideRendererContext(
-            document = renderDocument,
-            onLinkClick = onLinkClick,
-            onFootnoteClick = onFootnoteClick,
-            onFootnoteBackClick = onFootnoteBackClick,
-            footnoteNavigationState = footnoteNavigationState,
-            imageContent = imageContent,
-            config = config,
-            codeTheme = codeTheme,
-            isStreaming = isStreaming,
-            directiveRegistry = directiveRegistry,
-        ) {
-            // 流式生成期间跳过 SelectionContainer：
-            // SelectionContainer 在内容高频变化时会对内部布局做额外的 intrinsic 测量
-            // （用于计算选择手柄位置），叠加代码块等长内容的重组，加重布局抖动。
-            // 流式结束后恢复 SelectionContainer，用户可以正常选择文本。
-            val markdownBody: @Composable () -> Unit = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
-                ) {
-                    for (node in renderBlocks) {
-                        key(node::class, node.stableKey) {
-                            BlockRenderer(
-                                node = node,
-                                renderRevision = blockRenderRevision(node),
-                            )
-                        }
-                    }
-                }
-            }
-            Column(
-                modifier = modifier
-                    .then(if (enableScroll) Modifier.verticalScroll(scrollState) else Modifier)
-                    .graphicsLayer { },
-                verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
-            ) {
-                header?.invoke()
-                if (isStreaming) {
-                    markdownBody()
-                } else {
-                    SelectionContainer {
-                        markdownBody()
-                    }
-                }
-                footer?.invoke()
-            }
-        }
-    }
-}
-
-/**
- * 非 Lazy 版本，用于嵌套在其他容器中。
- * 例如：BlockQuote、ListItem 内部的子块渲染。
- */
-@Composable
-internal fun MarkdownBlockChildren(
-    parent: ContainerNode,
+private fun MarkdownLoading(
     modifier: Modifier = Modifier,
 ) {
-    val blockNodes = parent.children.filter { it !is BlankLine }
-    val theme = LocalMarkdownTheme.current
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
-    ) {
-        for (node in blockNodes) {
-            key(node::class, node.stableKey) {
-                BlockRenderer(
-                    node = node,
-                    renderRevision = blockRenderRevision(node),
-                )
-            }
-        }
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
     }
-}
-
-/**
- * 结构性比较两个节点列表：
- * - 长度相同
- * - 每个位置的节点引用相同（=== 引用比较）
- *
- * 这比 `remember(document)` 更精确：当 Document 对象每次都是新的，
- * 但 children 列表的结构（对象引用）没变时，返回 true → 避免不必要的重组。
- */
-private fun structurallyEqual(a: List<Node>, b: List<Node>): Boolean {
-    if (a.size != b.size) return false
-    for (i in a.indices) {
-        if (a[i] !== b[i]) return false
-    }
-    return true
-}
-
-private fun revisionsEqual(a: List<Long>, b: List<Long>): Boolean {
-    if (a.size != b.size) return false
-    for (i in a.indices) {
-        if (a[i] != b[i]) return false
-    }
-    return true
-}
-
-private fun initialVisibleBlockCount(initialBlockCount: Int, totalBlockCount: Int): Int {
-    return initialBlockCount.coerceAtLeast(0).coerceAtMost(totalBlockCount.coerceAtLeast(0))
 }
