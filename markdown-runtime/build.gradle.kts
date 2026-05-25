@@ -12,6 +12,11 @@ kotlin {
         namespace = "com.hrm.markdown.runtime"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
+
+        optimization {
+            consumerKeepRules.publish = true
+            consumerKeepRules.files.add(project.file("consumer-rules.pro"))
+        }
     }
 
     listOf(
