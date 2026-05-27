@@ -35,12 +35,9 @@ internal fun MathBlockRenderer(
 ) {
     val theme = LocalMarkdownTheme.current
     val trimmedLatex = latex.trim()
-    // 将 color 和 darkColor 统一设为 mathColor，
-    // 避免 Latex 组件内部 isSystemInDarkTheme() 选错颜色导致文字与背景色对比度不足
     val config = LatexConfig(
         fontSize = (theme.mathFontSize * 1.2f).sp,
-        color = theme.mathColor,
-        darkColor = theme.mathColor,
+        theme = theme.latexTheme,
     )
 
     // 使用 LatexMeasurer 精确测量公式高度，避免容器产生多余空白

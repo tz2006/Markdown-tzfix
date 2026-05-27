@@ -19,7 +19,7 @@ ktor = "3.5.0"
 material3 = "1.10.0-alpha05"
 lifecycleRuntimeKtx = "2.10.0"
 composeBom = "2026.05.01"
-latex = '1.4.5'
+latex = '1.4.6'
 codehigh = '1.1.2'
 diagram = '1.0.3'
 

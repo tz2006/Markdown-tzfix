@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hrm.diagram.core.theme.DiagramTheme
 import com.hrm.diagram.render.theme.material3
+import com.hrm.latex.renderer.model.LatexTheme
 
 /**
  * Markdown 渲染的完整主题配置。
@@ -93,8 +94,8 @@ data class MarkdownTheme(
     val mathFontSize: Float = 16f,
     /** 数学公式块背景色 */
     val mathBlockBackground: Color = Color(0xFFF6F8FA),
-    /** 数学公式文字颜色 */
-    val mathColor: Color = Color(0xFF1F2328),
+    /** LaTeX 渲染主题 */
+    val latexTheme: LatexTheme = defaultLightLatexTheme(),
     /** Admonition 样式映射 */
     val admonitionStyles: Map<String, AdmonitionStyle> = defaultAdmonitionStyles(),
     /** 脚注文字样式 */
@@ -161,7 +162,7 @@ data class MarkdownTheme(
             taskCheckedColor = Color(0xFF3FB950),
             taskUncheckedColor = Color(0xFF3D444D),
             mathBlockBackground = Color(0xFF161B22),
-            mathColor = Color(0xFFE6EDF3),
+            latexTheme = defaultDarkLatexTheme(),
             admonitionStyles = darkAdmonitionStyles(),
             kbdBackground = Color(0xFF343942),
             codeBlockTitleBackground = Color(0xFF21262D),
@@ -223,7 +224,7 @@ data class MarkdownTheme(
                 taskCheckedColor = colorScheme.primary,
                 taskUncheckedColor = colorScheme.outline,
                 mathBlockBackground = codeContainerColor,
-                mathColor = contentColor,
+                latexTheme = LatexTheme.material3(colorScheme),
                 admonitionStyles = material3AdmonitionStyles(colorScheme),
                 footnoteStyle = baseTheme.footnoteStyle.copy(color = subduedContentColor),
                 kbdBackground = codeContainerColor,
@@ -244,6 +245,16 @@ data class MarkdownTheme(
         fun material3(): MarkdownTheme = material3(MaterialTheme.colorScheme)
     }
 }
+
+internal fun defaultLightLatexTheme(): LatexTheme = LatexTheme.light(
+    color = Color(0xFF1F2328),
+    backgroundColor = Color.Transparent,
+)
+
+internal fun defaultDarkLatexTheme(): LatexTheme = LatexTheme.dark(
+    color = Color(0xFFE6EDF3),
+    backgroundColor = Color.Transparent,
+)
 
 @Immutable
 data class AdmonitionStyle(
