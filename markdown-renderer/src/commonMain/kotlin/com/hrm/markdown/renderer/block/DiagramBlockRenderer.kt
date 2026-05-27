@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import com.hrm.diagram.render.Diagram
 import com.hrm.diagram.render.compose.DiagramPresentationMode
 import com.hrm.diagram.render.compose.DiagramView
@@ -28,6 +29,7 @@ internal fun DiagramBlockRenderer(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
+    val diagramBackground = Color(theme.diagramTheme.colors.canvas.argb)
     val code = node.literal.trimEnd('\n')
     val diagramType = node.diagramType.lowercase()
     val detection = remember(code, diagramType) {
@@ -46,12 +48,13 @@ internal fun DiagramBlockRenderer(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(theme.codeBlockCornerRadius))
-            .background(theme.codeBlockBackground)
+            .background(diagramBackground)
             .padding(theme.codeBlockPadding),
     ) {
         if (code.isNotBlank() && detection.shouldRouteToDiagram) {
             DiagramView(
                 source = code,
+                theme = theme.diagramTheme,
                 modifier = Modifier.fillMaxWidth(),
                 zoomEnabled = false,
                 presentationMode = DiagramPresentationMode.Embedded,

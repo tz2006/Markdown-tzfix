@@ -17,6 +17,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hrm.diagram.core.theme.DiagramTheme
+import com.hrm.diagram.render.theme.material3
 
 /**
  * Markdown 渲染的完整主题配置。
@@ -125,6 +127,8 @@ data class MarkdownTheme(
     ),
     /** 剧透文本遮挡色（文字颜色和背景色相同，点击后显示） */
     val spoilerColor: Color = Color(0xFF3A3A3A),
+    /** Diagram 块渲染主题 */
+    val diagramTheme: DiagramTheme = DiagramTheme.Default,
 ) {
     companion object {
         /**
@@ -162,6 +166,7 @@ data class MarkdownTheme(
             kbdBackground = Color(0xFF343942),
             codeBlockTitleBackground = Color(0xFF21262D),
             spoilerColor = Color(0xFF3D444D),
+            diagramTheme = DiagramTheme.Dark,
         )
 
         /**
@@ -190,6 +195,11 @@ data class MarkdownTheme(
          */
         fun material3(colorScheme: ColorScheme): MarkdownTheme {
             val baseTheme = if (colorScheme.surface.luminance() < 0.5f) dark() else light()
+            val baseDiagramTheme = if (colorScheme.surface.luminance() < 0.5f) {
+                DiagramTheme.Dark
+            } else {
+                DiagramTheme.Default
+            }
             val contentColor = colorScheme.onSurface
             val subduedContentColor = colorScheme.onSurfaceVariant
             val codeContainerColor = colorScheme.surfaceVariant
@@ -220,6 +230,7 @@ data class MarkdownTheme(
                 codeBlockTitleBackground = codeTitleContainerColor,
                 codeBlockTitleStyle = baseTheme.codeBlockTitleStyle.copy(color = subduedContentColor),
                 spoilerColor = subduedContentColor,
+                diagramTheme = DiagramTheme.material3(colorScheme, base = baseDiagramTheme),
             )
         }
 
