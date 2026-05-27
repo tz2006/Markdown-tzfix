@@ -4,8 +4,8 @@
 
 **极速、跨平台的 Compose Multiplatform Markdown 引擎**
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.1-4285F4?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.11.0-4285F4?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/markdown-parser.svg?color=orange&label=Maven%20Central)](https://central.sonatype.com/search?q=io.github.huarangmeng.markdown)
 [![CommonMark](https://img.shields.io/badge/CommonMark%200.31.2-652%2F652%20✓-brightgreen)](https://spec.commonmark.org/0.31.2/)
 [![Android API](https://img.shields.io/badge/Android%20API-23%2B-34A853?logo=android&logoColor=white)](https://android-arsenal.com/api?level=24)
@@ -523,6 +523,20 @@ Markdown(
 | | **总计** | **372/372 (100%)** |
 
 > 📖 完整详情：[PARSER_COVERAGE_ANALYSIS.md](./markdown-parser/PARSER_COVERAGE_ANALYSIS.md)
+
+---
+
+## 🔗 渲染依赖说明
+
+`markdown-renderer` 当前通过以下外部库提供数学公式、代码高亮和图表渲染能力：
+
+| 能力 | 本项目使用的 Maven 模块 | 仓库地址 |
+|------|-------------------------|----------|
+| LaTeX 数学公式 | `io.github.huarangmeng:latex-base`、`io.github.huarangmeng:latex-parser`、`io.github.huarangmeng:latex-renderer` | [huarangmeng/latex](https://github.com/huarangmeng/latex) |
+| 代码高亮 | `io.github.huarangmeng:codehighlight-parser`、`io.github.huarangmeng:codehighlight-render` | [huarangmeng/codehigh](https://github.com/huarangmeng/codehigh) |
+| 图表块 | `io.github.huarangmeng:diagram-core`、`io.github.huarangmeng:diagram-layout`、`io.github.huarangmeng:diagram-parser`、`io.github.huarangmeng:diagram-render` | [huarangmeng/diagram](https://github.com/huarangmeng/diagram) |
+
+如果你只需要其中一部分能力，也可以直接按需依赖对应的上游库。
 
 ---
 

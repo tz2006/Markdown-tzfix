@@ -4,8 +4,8 @@
 
 **A Blazing-Fast, Cross-Platform Markdown Engine for Compose Multiplatform**
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.1-4285F4?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.11.0-4285F4?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.huarangmeng/markdown-parser.svg?color=orange&label=Maven%20Central)](https://central.sonatype.com/search?q=io.github.huarangmeng.markdown)
 [![CommonMark](https://img.shields.io/badge/CommonMark%200.31.2-652%2F652%20✓-brightgreen)](https://spec.commonmark.org/0.31.2/)
 [![Android API](https://img.shields.io/badge/Android%20API-23%2B-34A853?logo=android&logoColor=white)](https://android-arsenal.com/api?level=24)
@@ -523,6 +523,20 @@ Supports size specification in Markdown:
 | | **Total** | **372/372 (100%)** |
 
 > 📖 Full details: [PARSER_COVERAGE_ANALYSIS.md](./markdown-parser/PARSER_COVERAGE_ANALYSIS.md)
+
+---
+
+## 🔗 Rendering Library Guide
+
+`markdown-renderer` integrates the following external libraries for math, code highlighting, and diagrams:
+
+| Capability | Maven modules used by this project | Repository |
+|------------|-----------------------------------|------------|
+| LaTeX math | `io.github.huarangmeng:latex-base`, `io.github.huarangmeng:latex-parser`, `io.github.huarangmeng:latex-renderer` | [huarangmeng/latex](https://github.com/huarangmeng/latex) |
+| Code highlighting | `io.github.huarangmeng:codehighlight-parser`, `io.github.huarangmeng:codehighlight-render` | [huarangmeng/codehigh](https://github.com/huarangmeng/codehigh) |
+| Diagram blocks | `io.github.huarangmeng:diagram-core`, `io.github.huarangmeng:diagram-layout`, `io.github.huarangmeng:diagram-parser`, `io.github.huarangmeng:diagram-render` | [huarangmeng/diagram](https://github.com/huarangmeng/diagram) |
+
+If you only need a subset of the rendering stack, you can depend on the corresponding upstream library directly.
 
 ---
 
