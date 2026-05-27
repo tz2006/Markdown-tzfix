@@ -89,7 +89,7 @@ dependencies {
 }
 ```
 
-> 💡 `markdown-renderer` bundles Coil3 + Ktor3 for image loading as transitive dependencies.
+> 💡 `markdown-renderer` bundles Coil3 + Ktor3 for image loading, and `diagram-render` for Mermaid / PlantUML / DOT blocks, as transitive dependencies.
 
 ### Basic Usage
 

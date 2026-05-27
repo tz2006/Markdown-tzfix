@@ -19,8 +19,9 @@ ktor = "3.4.2"
 material3 = "1.10.0-alpha05"
 lifecycleRuntimeKtx = "2.10.0"
 composeBom = "2026.03.01"
-latex = '1.4.4'
-codehigh = '1.1.1'
+latex = '1.4.5'
+codehigh = '1.1.2'
+diagram = '1.0.2'
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -65,6 +66,11 @@ latex-renderer = { module = "io.github.huarangmeng:latex-renderer", version.ref 
 
 codehigh-parser = { module = "io.github.huarangmeng:codehighlight-parser", version.ref = "codehigh" }
 codehigh-render = { module = "io.github.huarangmeng:codehighlight-render", version.ref = "codehigh" }
+
+diagram-core = { module = "io.github.huarangmeng:diagram-core", version.ref = "diagram" }
+diagram-layout = { module = "io.github.huarangmeng:diagram-layout", version.ref = "diagram" }
+diagram-parser = { module = "io.github.huarangmeng:diagram-parser", version.ref = "diagram" }
+diagram-render = { module = "io.github.huarangmeng:diagram-render", version.ref = "diagram" }
 
 [bundles]
 latex = ["latex-base", "latex-parser", "latex-renderer"]

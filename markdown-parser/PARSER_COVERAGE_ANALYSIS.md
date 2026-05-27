@@ -284,7 +284,7 @@
 - ✅ 图表类型大小写不敏感
 - ✅ 图表代码原样保留，不解析 Markdown 语法
 
-> **备注**: 后处理阶段 `convertDiagramBlocks()` 将 info string 匹配已知图表语言的 FencedCodeBlock 转换为 `DiagramBlock` AST 节点。渲染器已支持 Mermaid flowchart/graph 和 PlantUML sequence diagram 的原生 Compose Canvas 绘制（含节点形状、箭头、标签、自动布局），其他图表类型以带类型标签的代码块形式展示。
+> **备注**: 后处理阶段 `DiagramProcessor` 会将 info string 命中已知图表语言的 `FencedCodeBlock` 转换为 `DiagramBlock` AST 节点。渲染层优先通过外部 `io.github.huarangmeng:diagram-render` 统一渲染 Mermaid / PlantUML / DOT 图表；暂未被该库识别的图表类型会降级为带类型标签的代码块展示。
 
 #### 多列布局（Columns Layout，扩展）
 - ✅ `:::columns` 多列布局容器

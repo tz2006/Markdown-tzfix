@@ -42,6 +42,12 @@ internal fun BlockRenderer(
         )
         return
     }
+    if (node is DiagramBlock) {
+        // DiagramView 内部维护 streaming session；这里不能随着 renderRevision 频繁重建，
+        // 否则每次增量更新都会丢失 append 累积状态，表现为空白占位或迟迟不出图。
+        DiagramBlockRenderer(node, modifier)
+        return
+    }
 
     key(renderRevision) {
         when (node) {
@@ -72,7 +78,6 @@ internal fun BlockRenderer(
             is Table -> TableRenderer(node, modifier)
             is Admonition -> AdmonitionRenderer(node, modifier)
             is CustomContainer -> CustomContainerRenderer(node, modifier)
-            is DiagramBlock -> DiagramBlockRenderer(node, modifier)
             is ColumnsLayout -> ColumnsLayoutRenderer(node, modifier)
             is DefinitionList -> DefinitionListRenderer(node, modifier)
             is FootnoteDefinition -> FootnoteDefinitionRenderer(node, modifier)

@@ -89,7 +89,7 @@ dependencies {
 }
 ```
 
-> 💡 `markdown-renderer` 内置了 Coil3 + Ktor3 用于图片加载，会作为传递依赖自动引入。
+> 💡 `markdown-renderer` 会自动传递引入 Coil3 + Ktor3 图片加载能力，以及 Mermaid / PlantUML / DOT 图表所需的 `diagram-render`。
 
 ### 基本用法
 

@@ -54,6 +54,7 @@ kotlin {
 
             implementation(libs.bundles.latex)
             implementation(libs.bundles.codehigh)
+            implementation(libs.diagram.render)
 
             // 图片加载：Coil3 + Ktor3 网络引擎
             implementation(libs.coil.compose)

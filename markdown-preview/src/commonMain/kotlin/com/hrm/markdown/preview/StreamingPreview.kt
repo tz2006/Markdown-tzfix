@@ -80,6 +80,25 @@ internal val streamingPreviewGroups = listOf(
             ),
         )
     ),
+    PreviewGroup(
+        id = "streaming_diagram_stability",
+        title = "Diagram 稳定性",
+        description = "大量图表块在增量解析中的稳定性压力验证",
+        items = listOf(
+            PreviewItem(
+                id = "streaming_many_diagrams",
+                title = "大量 Diagram 增量解析",
+                markdown = manyDiagramsMarkdownString(),
+                content = {
+                    StringStreamingMarkdownDemo(
+                        markdown = manyDiagramsMarkdownString(),
+                        emptyHint = "该示例会流式输出大量 mermaid / plantuml / dot 图表块，" +
+                                "用于验证 diagram 组件在逐字符流式输入下的增量解析稳定性、滚动跟随和渲染一致性。",
+                    )
+                }
+            ),
+        )
+    ),
 )
 
 @Composable
@@ -90,7 +109,7 @@ private fun StreamingMarkdownDemo() {
                 "Markdown 组件内置流式优化：\n" +
                 "• 自动节流渲染，避免高频更新导致的布局抖动\n" +
                 "• 流式期间跳过 SelectionContainer，减少 intrinsic 测量\n" +
-                "• 流式结束后自动恢复文本选择能力"
+                "• 流式结束后自动恢复文本选择能力",
     )
 }
 
@@ -101,7 +120,7 @@ private fun Issue19StreamingDemo() {
         emptyHint = "该示例复现 Issue #19 的输入形态：\n" +
                 "使用单个 markdownString 按字符流式输出，\n" +
                 "不再依赖 `List<String>` token 序列。\n\n" +
-                "期望行为：流式过程中不应短暂显示为 SetextHeading。"
+                "期望行为：流式过程中不应短暂显示为 SetextHeading。",
     )
 }
 
@@ -404,4 +423,165 @@ expect class PlatformInfo() {
 Kotlin Multiplatform 已经从实验性功能发展为生产就绪的跨平台解决方案。
 
 > 提示：你可以继续扩展这个 demo，模拟更复杂的消息流。
+""".trimIndent()
+
+private fun manyDiagramsMarkdownString(): String = """
+# Diagram 增量解析稳定性压力预览
+
+该文档用于验证在大量图表块持续追加时，增量解析、图表识别与渲染能否保持稳定。
+
+- 图表类型覆盖：`mermaid`、`plantuml`、`dot`
+- 验证重点：不闪烁、不串图、不丢尾部、不出现明显卡死
+
+## Mermaid Flowchart 1
+
+```mermaid
+flowchart TD
+    M1A[输入 1] --> M1B[解析 1]
+    M1B --> M1C{识别图表类型}
+    M1C -->|mermaid| M1D[DiagramBlock]
+    M1C -->|fallback| M1E[Code Fallback]
+    M1D --> M1F[diagram-render]
+```
+
+## PlantUML Sequence 1
+
+```plantuml
+@startuml
+actor User1
+participant Parser1
+participant Renderer1
+User1 -> Parser1 : append chunk 1
+Parser1 -> Renderer1 : incremental update 1
+Renderer1 --> User1 : stable frame 1
+@enduml
+```
+
+## DOT Graph 1
+
+```dot
+digraph Incremental1 {
+  rankdir=LR;
+  Input1 -> Parse1;
+  Parse1 -> Detect1;
+  Detect1 -> Render1;
+  Render1 -> Stable1;
+}
+```
+
+段落 1：当前批次用于覆盖多种图表类型交错出现时的增量解析路径。
+
+## Mermaid Flowchart 2
+
+```mermaid
+flowchart TD
+    M2A[输入 2] --> M2B[解析 2]
+    M2B --> M2C{识别图表类型}
+    M2C -->|mermaid| M2D[DiagramBlock]
+    M2C -->|fallback| M2E[Code Fallback]
+    M2D --> M2F[diagram-render]
+```
+
+## PlantUML Sequence 2
+
+```plantuml
+@startuml
+actor User2
+participant Parser2
+participant Renderer2
+User2 -> Parser2 : append chunk 2
+Parser2 -> Renderer2 : incremental update 2
+Renderer2 --> User2 : stable frame 2
+@enduml
+```
+
+## DOT Graph 2
+
+```dot
+digraph Incremental2 {
+  rankdir=LR;
+  Input2 -> Parse2;
+  Parse2 -> Detect2;
+  Detect2 -> Render2;
+  Render2 -> Stable2;
+}
+```
+
+段落 2：当前批次用于覆盖多种图表类型交错出现时的增量解析路径。
+
+## Mermaid Flowchart 3
+
+```mermaid
+flowchart TD
+    M3A[输入 3] --> M3B[解析 3]
+    M3B --> M3C{识别图表类型}
+    M3C -->|mermaid| M3D[DiagramBlock]
+    M3C -->|fallback| M3E[Code Fallback]
+    M3D --> M3F[diagram-render]
+```
+
+## PlantUML Sequence 3
+
+```plantuml
+@startuml
+actor User3
+participant Parser3
+participant Renderer3
+User3 -> Parser3 : append chunk 3
+Parser3 -> Renderer3 : incremental update 3
+Renderer3 --> User3 : stable frame 3
+@enduml
+```
+
+## DOT Graph 3
+
+```dot
+digraph Incremental3 {
+  rankdir=LR;
+  Input3 -> Parse3;
+  Parse3 -> Detect3;
+  Detect3 -> Render3;
+  Render3 -> Stable3;
+}
+```
+
+段落 3：当前批次用于覆盖多种图表类型交错出现时的增量解析路径。
+
+## Mermaid Flowchart 4
+
+```mermaid
+flowchart TD
+    M4A[输入 4] --> M4B[解析 4]
+    M4B --> M4C{识别图表类型}
+    M4C -->|mermaid| M4D[DiagramBlock]
+    M4C -->|fallback| M4E[Code Fallback]
+    M4D --> M4F[diagram-render]
+```
+
+## PlantUML Sequence 4
+
+```plantuml
+@startuml
+actor User4
+participant Parser4
+participant Renderer4
+User4 -> Parser4 : append chunk 4
+Parser4 -> Renderer4 : incremental update 4
+Renderer4 --> User4 : stable frame 4
+@enduml
+```
+
+## DOT Graph 4
+
+```dot
+digraph Incremental4 {
+  rankdir=LR;
+  Input4 -> Parse4;
+  Parse4 -> Detect4;
+  Detect4 -> Render4;
+  Render4 -> Stable4;
+}
+```
+
+段落 4：当前批次用于覆盖多种图表类型交错出现时的增量解析路径。
 """.trimIndent()
