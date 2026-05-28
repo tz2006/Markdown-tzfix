@@ -7,7 +7,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import com.hrm.markdown.parser.ast.Heading
 import com.hrm.markdown.parser.ast.Node
@@ -18,6 +17,12 @@ import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.LocalRendererDocument
 import com.hrm.markdown.renderer.inline.InlineFlowText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.inline.rememberInlineModel
+import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
+import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromText
+import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromValues
+import com.hrm.markdown.renderer.internal.core.model.InlineModel
+import com.hrm.markdown.renderer.internal.core.model.TextAtom
 
 /**
  * ATX 标题渲染器 (# ~ ######)
@@ -28,45 +33,20 @@ internal fun HeadingRenderer(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
     val config = LocalMarkdownConfig.current
     val level = (node.level - 1).coerceIn(0, theme.headingStyles.lastIndex)
-    val style = theme.headingStyles[level]
-    val inlineResult = rememberInlineContent(
-        parent = node,
-        onLinkClick = onLinkClick,
-        hostTextStyle = style,
-    )
+    val inlineModel = rememberInlineModel(node)
     val numbering = if (config.enableHeadingNumbering) {
         val document = LocalRendererDocument.current
         remember(document, node) { computeHeadingNumber(document.children, node) }
     } else null
-
-    val finalAnnotated = if (numbering != null) {
-        remember(numbering, inlineResult.annotated) {
-            buildAnnotatedString {
-                append("$numbering ")
-                append(inlineResult.annotated)
-            }
-        }
-    } else inlineResult.annotated
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        InlineFlowText(
-            annotated = finalAnnotated,
-            inlineContents = inlineResult.inlineContents,
-            style = style,
-        )
-
-        // h1 和 h2 下方添加分隔线（GitHub 风格）
-        if (node.level <= 2) {
-            HorizontalDivider(
-                modifier = Modifier.padding(top = 4.dp),
-                thickness = theme.dividerThickness,
-                color = theme.dividerColor,
-            )
-        }
-    }
+    RenderHeadingBlockModel(
+        level = level,
+        numbering = numbering,
+        inlineModel = inlineModel,
+        showDivider = node.level <= 2,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -78,41 +58,57 @@ internal fun SetextHeadingRenderer(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
     val config = LocalMarkdownConfig.current
     val level = (node.level - 1).coerceIn(0, theme.headingStyles.lastIndex)
-    val style = theme.headingStyles[level]
-    val inlineResult = rememberInlineContent(
-        parent = node,
-        onLinkClick = onLinkClick,
-        hostTextStyle = style,
-    )
+    val inlineModel = rememberInlineModel(node)
     val numbering = if (config.enableHeadingNumbering) {
         val document = LocalRendererDocument.current
         remember(document, node) { computeHeadingNumberForSetext(document.children, node) }
     } else null
+    RenderHeadingBlockModel(
+        level = level,
+        numbering = numbering,
+        inlineModel = inlineModel,
+        showDivider = true,
+        modifier = modifier,
+    )
+}
 
-    val finalAnnotated = if (numbering != null) {
-        remember(numbering, inlineResult.annotated) {
-            buildAnnotatedString {
-                append("$numbering ")
-                append(inlineResult.annotated)
-            }
-        }
-    } else inlineResult.annotated
+@Composable
+internal fun RenderHeadingBlockModel(
+    level: Int,
+    numbering: String?,
+    inlineModel: InlineModel,
+    showDivider: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val theme = LocalMarkdownTheme.current
+    val onLinkClick = LocalOnLinkClick.current
+    val style = theme.headingStyles[level.coerceIn(0, theme.headingStyles.lastIndex)]
+    val finalModel = remember(inlineModel, numbering) {
+        inlineModel.prependHeadingNumbering(numbering)
+    }
+    val inlineResult = rememberInlineContent(
+        model = finalModel,
+        onLinkClick = onLinkClick,
+        hostTextStyle = style,
+    )
 
     Column(modifier = modifier.fillMaxWidth()) {
         InlineFlowText(
-            annotated = finalAnnotated,
+            annotated = inlineResult.annotated,
             inlineContents = inlineResult.inlineContents,
+            flowInput = inlineResult.flowInput,
             style = style,
         )
 
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 4.dp),
-            thickness = theme.dividerThickness,
-            color = theme.dividerColor,
-        )
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 4.dp),
+                thickness = theme.dividerThickness,
+                color = theme.dividerColor,
+            )
+        }
     }
 }
 
@@ -166,4 +162,30 @@ private fun buildNumberString(counters: IntArray, maxIdx: Int): String {
         parts.add(counters[i].coerceAtLeast(1))
     }
     return parts.joinToString(".")
+}
+
+private fun InlineModel.prependHeadingNumbering(numbering: String?): InlineModel {
+    if (numbering.isNullOrBlank()) return this
+    val prefix = "$numbering "
+    val prefixStableId = renderIdentityFromText(prefix, identity.stableId)
+    val prefixIdentity = RenderIdentity(
+        stableId = prefixStableId,
+        contentRevision = renderIdentityFromValues(identity.contentRevision, prefixStableId),
+        layoutRevision = renderIdentityFromValues(identity.layoutRevision, prefixStableId),
+        paintRevision = 0L,
+    )
+    return copy(
+        identity = RenderIdentity(
+            stableId = identity.stableId,
+            contentRevision = renderIdentityFromValues(identity.contentRevision, prefixIdentity.contentRevision),
+            layoutRevision = renderIdentityFromValues(identity.layoutRevision, prefixIdentity.layoutRevision),
+            paintRevision = identity.paintRevision,
+        ),
+        atoms = listOf(
+            TextAtom(
+                identity = prefixIdentity,
+                text = prefix,
+            )
+        ) + atoms,
+    )
 }

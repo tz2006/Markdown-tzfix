@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +25,11 @@ import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.inline.InlineFlowText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.internal.core.model.TableBlockModel
+import com.hrm.markdown.renderer.internal.core.model.TableCellBlockModel
+import com.hrm.markdown.renderer.internal.core.model.TableRowBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutTableBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutTableCellGroup
 
 /**
  * GFM 表格渲染器。
@@ -183,8 +189,200 @@ private fun TableCellRenderer(
         InlineFlowText(
             annotated = inlineResult.annotated,
             inlineContents = inlineResult.inlineContents,
+            flowInput = inlineResult.flowInput,
             style = style,
             maxLines = 1,
+        )
+    }
+}
+
+@Composable
+internal fun RenderTableBlockModel(
+    model: TableBlockModel,
+    modifier: Modifier = Modifier,
+) {
+    val theme = LocalMarkdownTheme.current
+    val columnCount = model.columnAlignments.size.coerceAtLeast(1)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+    ) {
+        TableBlockModelLayout(
+            rows = model.rows,
+            alignments = model.columnAlignments,
+            columnCount = columnCount,
+            modifier = Modifier.border(width = 1.dp, color = theme.tableBorderColor),
+        )
+    }
+}
+
+@Composable
+internal fun RenderTableLayoutBlockModel(
+    model: LayoutTableBlockModel,
+    modifier: Modifier = Modifier,
+) {
+    val theme = LocalMarkdownTheme.current
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+    ) {
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.border(width = 1.dp, color = theme.tableBorderColor),
+        ) {
+            model.rows.forEach { row ->
+                androidx.compose.foundation.layout.Row {
+                    row.cells.forEach { cell ->
+                        TableLayoutCellRenderer(
+                            cell = cell,
+                            modifier = Modifier
+                                .let { if (row.isHeader) it.background(theme.tableHeaderBackground) else it }
+                                .border(0.5.dp, theme.tableBorderColor)
+                                .padding(theme.tableCellPadding),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TableBlockModelLayout(
+    rows: List<TableRowBlockModel>,
+    alignments: List<Table.Alignment>,
+    columnCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    val theme = LocalMarkdownTheme.current
+    Layout(
+        modifier = modifier,
+        content = {
+            for (row in rows) {
+                for (colIndex in 0 until columnCount) {
+                    val cell = row.cells.getOrNull(colIndex)
+                    val alignment = alignments.getOrElse(colIndex) { Table.Alignment.NONE }
+                    TableBlockModelCellRenderer(
+                        cell = cell,
+                        alignment = alignment,
+                        isHeader = row.isHeader,
+                        modifier = Modifier
+                            .border(0.5.dp, theme.tableBorderColor)
+                            .let {
+                                if (row.isHeader) it.background(theme.tableHeaderBackground) else it
+                            }
+                            .padding(theme.tableCellPadding),
+                    )
+                }
+            }
+        },
+    ) { measurables, constraints ->
+        val rowCount = rows.size
+        if (rowCount == 0 || columnCount == 0) {
+            return@Layout layout(0, 0) {}
+        }
+
+        val columnWidths = IntArray(columnCount)
+        for (index in measurables.indices) {
+            val colIdx = index % columnCount
+            val intrinsicWidth = measurables[index].maxIntrinsicWidth(Constraints.Infinity)
+            columnWidths[colIdx] = maxOf(columnWidths[colIdx], intrinsicWidth)
+        }
+
+        val placeables = Array(measurables.size) { index ->
+            val colIdx = index % columnCount
+            val fixedWidth = columnWidths[colIdx]
+            measurables[index].measure(
+                Constraints(
+                    minWidth = fixedWidth,
+                    maxWidth = fixedWidth,
+                )
+            )
+        }
+
+        val rowHeights = IntArray(rowCount)
+        for (rowIdx in 0 until rowCount) {
+            for (colIdx in 0 until columnCount) {
+                val placeable = placeables[rowIdx * columnCount + colIdx]
+                rowHeights[rowIdx] = maxOf(rowHeights[rowIdx], placeable.height)
+            }
+        }
+
+        val totalWidth = columnWidths.sum()
+        val totalHeight = rowHeights.sum()
+        layout(totalWidth, totalHeight) {
+            var y = 0
+            for (rowIdx in 0 until rowCount) {
+                var x = 0
+                for (colIdx in 0 until columnCount) {
+                    val placeable = placeables[rowIdx * columnCount + colIdx]
+                    placeable.placeRelative(x, y)
+                    x += columnWidths[colIdx]
+                }
+                y += rowHeights[rowIdx]
+            }
+        }
+    }
+}
+
+@Composable
+private fun TableBlockModelCellRenderer(
+    cell: TableCellBlockModel?,
+    alignment: Table.Alignment,
+    isHeader: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val theme = LocalMarkdownTheme.current
+    val onLinkClick = LocalOnLinkClick.current
+    val textAlign = when (alignment) {
+        Table.Alignment.LEFT -> TextAlign.Start
+        Table.Alignment.CENTER -> TextAlign.Center
+        Table.Alignment.RIGHT -> TextAlign.End
+        Table.Alignment.NONE -> TextAlign.Start
+    }
+    val style = if (isHeader) {
+        theme.bodyStyle.copy(fontWeight = FontWeight.Bold, textAlign = textAlign)
+    } else {
+        theme.bodyStyle.copy(textAlign = textAlign)
+    }
+    if (cell == null) {
+        Box(modifier = modifier)
+        return
+    }
+    val inlineResult = rememberInlineContent(
+        model = cell.inline,
+        onLinkClick = onLinkClick,
+        hostTextStyle = style,
+    )
+    Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
+        InlineFlowText(
+            annotated = inlineResult.annotated,
+            inlineContents = inlineResult.inlineContents,
+            flowInput = inlineResult.flowInput,
+            style = style,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun TableLayoutCellRenderer(
+    cell: LayoutTableCellGroup,
+    modifier: Modifier = Modifier,
+) {
+    val tableAlignment = Table.Alignment.entries.getOrElse(cell.alignmentOrdinal) { Table.Alignment.NONE }
+    Box(
+        modifier = modifier.then(
+            Modifier
+                .width(with(androidx.compose.ui.platform.LocalDensity.current) { cell.frame.width.toDp() })
+        ),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        TableBlockModelCellRenderer(
+            cell = cell.cell,
+            alignment = tableAlignment,
+            isHeader = cell.isHeader,
         )
     }
 }

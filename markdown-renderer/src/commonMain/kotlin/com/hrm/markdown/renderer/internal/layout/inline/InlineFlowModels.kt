@@ -1,4 +1,4 @@
-package com.hrm.markdown.renderer.inline
+package com.hrm.markdown.renderer.internal.layout.inline
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
@@ -38,12 +38,5 @@ internal sealed class LineItem {
         override val widthPx: Float,
         override val heightPx: Float,
         val alternateText: String,
-        val content: @Composable () -> Unit,
     ) : LineItem()
-}
-
-internal sealed class Token {
-    data class Text(val annotated: AnnotatedString) : Token()
-    data class Inline(val id: String) : Token()
-    data object Newline : Token()
 }

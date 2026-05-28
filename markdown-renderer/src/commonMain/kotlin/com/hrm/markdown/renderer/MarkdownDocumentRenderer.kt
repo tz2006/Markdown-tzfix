@@ -1,13 +1,20 @@
 package com.hrm.markdown.renderer
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.Modifier
 import com.hrm.codehigh.theme.CodeTheme
 import com.hrm.markdown.parser.ast.Document
+import com.hrm.markdown.renderer.internal.MarkdownEngineHost
+import com.hrm.markdown.renderer.internal.RendererFacadeState
+import com.hrm.markdown.renderer.internal.compose.ComposeRenderEnvironment
 import com.hrm.markdown.runtime.MarkdownDirectiveRegistry
 
 @Composable
@@ -50,38 +57,101 @@ internal fun MarkdownDocumentRenderer(
         isStreaming = isStreaming,
         hasHeader = header != null,
     )
-    val navigationHandlers = rememberMarkdownNavigationHandlers(
-        renderMode = renderMode,
-        enableScroll = enableScroll,
-        scrollState = scrollState,
-        lazyListState = lazyListState,
-        renderState = renderState,
-        onLinkClick = onLinkClick,
-    )
-
     ProvideMarkdownTheme(theme) {
-        ProvideRendererContext(
-            document = renderDocument,
-            onLinkClick = onLinkClick,
-            onFootnoteClick = navigationHandlers.onFootnoteClick,
-            onFootnoteBackClick = navigationHandlers.onFootnoteBackClick,
-            footnoteNavigationState = navigationHandlers.footnoteNavigationState,
-            imageContent = imageContent,
-            config = config,
-            codeTheme = codeTheme,
-            isStreaming = isStreaming,
-            directiveRegistry = directiveRegistry,
+        val engineHost = remember { MarkdownEngineHost() }
+        val facadeState = remember(
+            theme,
+            config,
+            codeTheme,
+            imageContent,
+            onLinkClick,
+            directiveRegistry,
+            isStreaming,
+            enableSelection,
         ) {
-            MarkdownDocumentLayout(
+            RendererFacadeState(
+                theme = theme,
+                config = config,
+                codeTheme = codeTheme,
+                imageRenderer = imageContent,
+                onLinkClick = onLinkClick,
+                directiveRegistry = directiveRegistry,
+                isStreaming = isStreaming,
+                enableSelection = enableSelection,
+            )
+        }
+        val internalRenderDocument = remember(
+            engineHost,
+            renderDocument,
+            theme,
+            config,
+            directiveRegistry,
+            isStreaming,
+        ) {
+            engineHost.compile(
+                document = renderDocument,
+                facadeState = facadeState,
+            )
+        }
+        val density = LocalDensity.current
+        BoxWithConstraints(modifier = modifier) {
+            val viewportWidthPx = with(density) { maxWidth.toPx() }
+            val blockSpacingPx = with(density) { theme.blockSpacing.toPx() }
+            val textMeasurer = rememberTextMeasurer()
+            val layoutDocument = remember(
+                engineHost,
+                internalRenderDocument,
+                facadeState,
+                viewportWidthPx,
+                blockSpacingPx,
+                density,
+                textMeasurer,
+            ) {
+                engineHost.layout(
+                    renderDocument = internalRenderDocument,
+                    facadeState = facadeState,
+                    viewportWidth = viewportWidthPx,
+                    blockSpacing = blockSpacingPx,
+                    density = density,
+                    textMeasurer = textMeasurer,
+                )
+            }
+            val navigationHandlers = rememberMarkdownNavigationHandlers(
                 renderMode = renderMode,
-                renderState = renderState,
-                modifier = modifier,
                 enableScroll = enableScroll,
                 scrollState = scrollState,
                 lazyListState = lazyListState,
-                header = header,
-                footer = footer,
+                effectivePagination = renderState.effectivePagination,
+                footnoteDefinitionItemIndexes = layoutDocument.metadata.footnoteDefinitionItemIndexes,
+                expandAllBlocks = renderState.expandAllBlocks,
+                onLinkClick = onLinkClick,
             )
+            ProvideRendererContext(
+                document = renderDocument,
+                onLinkClick = onLinkClick,
+                onFootnoteClick = navigationHandlers.onFootnoteClick,
+                onFootnoteBackClick = navigationHandlers.onFootnoteBackClick,
+                footnoteNavigationState = navigationHandlers.footnoteNavigationState,
+                imageContent = imageContent,
+                config = config,
+                codeTheme = codeTheme,
+                isStreaming = isStreaming,
+                directiveRegistry = directiveRegistry,
+            ) {
+                engineHost.composePainter.Paint(
+                    document = layoutDocument,
+                    environment = ComposeRenderEnvironment(
+                        modifier = Modifier.fillMaxWidth(),
+                        renderMode = renderMode,
+                        visibleBlockCount = renderState.renderBlocks.size,
+                        enableScroll = enableScroll,
+                        scrollState = scrollState,
+                        lazyListState = lazyListState,
+                        header = header,
+                        footer = footer,
+                    ),
+                )
+            }
         }
     }
 }

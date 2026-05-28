@@ -23,7 +23,9 @@ internal fun rememberMarkdownNavigationHandlers(
     enableScroll: Boolean,
     scrollState: ScrollState,
     lazyListState: LazyListState,
-    renderState: MarkdownBlockRenderState,
+    effectivePagination: Boolean,
+    footnoteDefinitionItemIndexes: Map<String, Int>,
+    expandAllBlocks: () -> Unit,
     onLinkClick: ((String) -> Unit)?,
 ): MarkdownNavigationHandlers {
     val footnoteNavigationState = remember { FootnoteNavigationState() }
@@ -31,7 +33,9 @@ internal fun rememberMarkdownNavigationHandlers(
     val currentOnLinkClick = rememberUpdatedState(onLinkClick)
     val currentScrollState = rememberUpdatedState(scrollState)
     val currentLazyListState = rememberUpdatedState(lazyListState)
-    val currentRenderState = rememberUpdatedState(renderState)
+    val currentFootnoteIndexes = rememberUpdatedState(footnoteDefinitionItemIndexes)
+    val currentEffectivePagination = rememberUpdatedState(effectivePagination)
+    val currentExpandAllBlocks = rememberUpdatedState(expandAllBlocks)
 
     val onFootnoteClick = remember(
         footnoteNavigationState,
@@ -39,8 +43,8 @@ internal fun rememberMarkdownNavigationHandlers(
         enableScroll,
         scrollState,
         lazyListState,
-        renderState.effectivePagination,
-        renderState.footnoteDefinitionItemIndexes,
+        effectivePagination,
+        footnoteDefinitionItemIndexes,
     ) {
         { label: String ->
             coroutineScope.launch {
@@ -52,7 +56,7 @@ internal fun rememberMarkdownNavigationHandlers(
                             index = lazyState.firstVisibleItemIndex,
                             offset = lazyState.firstVisibleItemScrollOffset,
                         )
-                        val targetIndex = currentRenderState.value.footnoteDefinitionItemIndexes[label]
+                        val targetIndex = currentFootnoteIndexes.value[label]
                         if (enableScroll && targetIndex != null) {
                             lazyState.animateScrollToItem(targetIndex)
                             withFrameNanos { }
@@ -65,8 +69,8 @@ internal fun rememberMarkdownNavigationHandlers(
                     else -> {
                         footnoteNavigationState.rememberReturnPosition(label, currentScrollState.value.value)
 
-                        if (currentRenderState.value.effectivePagination && !footnoteNavigationState.hasDefinition(label)) {
-                            currentRenderState.value.expandAllBlocks()
+                        if (currentEffectivePagination.value && !footnoteNavigationState.hasDefinition(label)) {
+                            currentExpandAllBlocks.value.invoke()
                             withFrameNanos { }
                         }
 

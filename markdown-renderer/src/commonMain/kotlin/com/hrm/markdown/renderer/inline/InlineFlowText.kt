@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.AlignmentLine
@@ -19,6 +20,12 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import com.hrm.markdown.renderer.internal.layout.inline.InlineFlowInput
+import com.hrm.markdown.renderer.internal.layout.inline.LineItem
+import com.hrm.markdown.renderer.internal.layout.inline.computeInlineFlowLayout
+import com.hrm.markdown.renderer.internal.layout.inline.computeIntrinsicHeightPx
+import com.hrm.markdown.renderer.internal.layout.inline.computeMaxIntrinsicWidthPx
+import com.hrm.markdown.renderer.internal.layout.inline.computeMinIntrinsicWidthPx
 import kotlin.math.roundToInt
 
 /**
@@ -32,6 +39,7 @@ import kotlin.math.roundToInt
 internal fun InlineFlowText(
     annotated: AnnotatedString,
     inlineContents: Map<String, InlineContentEntry>,
+    flowInput: InlineFlowInput,
     style: TextStyle,
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
@@ -48,10 +56,9 @@ internal fun InlineFlowText(
 
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val measurePolicy = remember(annotated, inlineContents, style, density, textMeasurer, maxLines) {
+    val measurePolicy = remember(flowInput, style, density, textMeasurer, maxLines) {
         inlineFlowMeasurePolicy(
-            annotated = annotated,
-            inlineContents = inlineContents,
+            input = flowInput,
             style = style,
             density = density,
             textMeasurer = textMeasurer,
@@ -65,6 +72,7 @@ internal fun InlineFlowText(
             InlineFlowMeasuredContent(
                 annotated = annotated,
                 inlineContents = inlineContents,
+                input = flowInput,
                 style = style,
                 density = density,
                 textMeasurer = textMeasurer,
@@ -79,6 +87,7 @@ internal fun InlineFlowText(
 private fun InlineFlowMeasuredContent(
     annotated: AnnotatedString,
     inlineContents: Map<String, InlineContentEntry>,
+    input: InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: androidx.compose.ui.text.TextMeasurer,
@@ -86,10 +95,9 @@ private fun InlineFlowMeasuredContent(
 ) {
     BoxWithConstraints {
         val maxWidthPx = with(density) { maxWidth.toPx() }
-        val flowLayout = remember(annotated, inlineContents, style, maxWidthPx, density, textMeasurer, maxLines) {
+        val flowLayout = remember(input, style, maxWidthPx, density, textMeasurer, maxLines) {
             computeInlineFlowLayout(
-                annotated = annotated,
-                inlineContents = inlineContents,
+                input = input,
                 style = style,
                 density = density,
                 textMeasurer = textMeasurer,
@@ -115,8 +123,11 @@ private fun InlineFlowMeasuredContent(
                             is LineItem.InlineItem -> {
                                 val wDp = with(density) { item.widthPx.toDp() }
                                 val hDp = with(density) { item.heightPx.toDp() }
-                                Box(modifier = Modifier.size(wDp, hDp)) {
-                                    item.content()
+                                val entry = inlineContents[item.id]
+                                key(item.id) {
+                                    Box(modifier = Modifier.size(wDp, hDp)) {
+                                        entry?.inlineTextContent?.children(item.alternateText)
+                                    }
                                 }
                             }
                         }
@@ -171,8 +182,7 @@ private fun InlineFlowMeasuredContent(
 }
 
 private fun inlineFlowMeasurePolicy(
-    annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    input: InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: androidx.compose.ui.text.TextMeasurer,
@@ -194,8 +204,7 @@ private fun inlineFlowMeasurePolicy(
         measurables: List<androidx.compose.ui.layout.IntrinsicMeasurable>,
         height: Int,
     ): Int = computeMinIntrinsicWidthPx(
-        annotated = annotated,
-        inlineContents = inlineContents,
+        input = input,
         style = style,
         density = density,
         textMeasurer = textMeasurer,
@@ -205,8 +214,7 @@ private fun inlineFlowMeasurePolicy(
         measurables: List<androidx.compose.ui.layout.IntrinsicMeasurable>,
         height: Int,
     ): Int = computeMaxIntrinsicWidthPx(
-        annotated = annotated,
-        inlineContents = inlineContents,
+        input = input,
         style = style,
         density = density,
         textMeasurer = textMeasurer,
@@ -216,8 +224,7 @@ private fun inlineFlowMeasurePolicy(
         measurables: List<androidx.compose.ui.layout.IntrinsicMeasurable>,
         width: Int,
     ): Int = computeIntrinsicHeightPx(
-        annotated = annotated,
-        inlineContents = inlineContents,
+        input = input,
         style = style,
         density = density,
         textMeasurer = textMeasurer,
@@ -229,8 +236,7 @@ private fun inlineFlowMeasurePolicy(
         measurables: List<androidx.compose.ui.layout.IntrinsicMeasurable>,
         width: Int,
     ): Int = computeIntrinsicHeightPx(
-        annotated = annotated,
-        inlineContents = inlineContents,
+        input = input,
         style = style,
         density = density,
         textMeasurer = textMeasurer,

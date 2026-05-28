@@ -19,13 +19,13 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import com.hrm.codehigh.theme.CodeTheme
 import com.hrm.latex.renderer.measure.LatexMeasurerState
-import com.hrm.markdown.parser.ast.Spoiler
 import com.hrm.markdown.renderer.MarkdownTheme
+import com.hrm.markdown.renderer.internal.core.model.InlineModel
 import com.hrm.markdown.runtime.MarkdownDirectiveRegistry
 
 @Composable
 internal fun SpoilerContent(
-    node: Spoiler,
+    model: InlineModel,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
     inlineContents: MutableMap<String, InlineContentEntry>,
@@ -37,7 +37,7 @@ internal fun SpoilerContent(
     textMeasurer: TextMeasurer?,
     inlineCodeTheme: CodeTheme?,
 ) {
-    var revealed by remember(node) { mutableStateOf(false) }
+    var revealed by remember(model.identity.stableId) { mutableStateOf(false) }
     val currentOnLinkClick = rememberUpdatedState(onLinkClick)
     val currentOnFootnoteClick = rememberUpdatedState(onFootnoteClick)
     val stableOnLinkClick: ((String) -> Unit)? = remember {
@@ -53,7 +53,7 @@ internal fun SpoilerContent(
         }
     }
     val annotated = remember(
-        node,
+        model.identity.contentRevision,
         theme,
         revealed,
         hostTextStyle,
@@ -63,43 +63,34 @@ internal fun SpoilerContent(
         textMeasurer,
         inlineCodeTheme,
     ) {
-        buildAnnotatedString {
-            if (revealed) {
+        val content = buildInlineAnnotatedStringFromModel(
+            model = model,
+            theme = theme,
+            hostTextStyle = hostTextStyle,
+            inlineContents = inlineContents,
+            directiveRegistry = directiveRegistry,
+            onLinkClick = stableOnLinkClick,
+            onFootnoteClick = stableOnFootnoteClick,
+            latexMeasurer = latexMeasurer,
+            density = density,
+            textMeasurer = textMeasurer,
+            codeTheme = inlineCodeTheme,
+        )
+        if (revealed) {
+            buildAnnotatedString {
                 withStyle(SpanStyle(background = theme.spoilerColor)) {
-                    renderInlineChildren(
-                        node.children,
-                        theme,
-                        hostTextStyle,
-                        inlineContents,
-                        directiveRegistry,
-                        stableOnLinkClick,
-                        stableOnFootnoteClick,
-                        latexMeasurer,
-                        density,
-                        textMeasurer,
-                        inlineCodeTheme,
-                    )
+                    append(content)
                 }
-            } else {
+            }
+        } else {
+            buildAnnotatedString {
                 withStyle(
                     SpanStyle(
                         background = theme.spoilerColor,
                         color = theme.spoilerColor,
                     )
                 ) {
-                    renderInlineChildren(
-                        node.children,
-                        theme,
-                        hostTextStyle,
-                        inlineContents,
-                        directiveRegistry,
-                        stableOnLinkClick,
-                        stableOnFootnoteClick,
-                        latexMeasurer,
-                        density,
-                        textMeasurer,
-                        inlineCodeTheme,
-                    )
+                    append(content)
                 }
             }
         }

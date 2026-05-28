@@ -17,6 +17,8 @@ import com.hrm.markdown.renderer.DefaultMarkdownImage
 import com.hrm.markdown.renderer.LocalImageRenderer
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.MarkdownImageData
+import com.hrm.markdown.renderer.internal.core.model.FigureBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutFigureBlockModel
 
 /**
  * Figure 渲染器：将 Figure 节点渲染为图片 + 标题（figcaption）。
@@ -28,6 +30,29 @@ internal fun FigureRenderer(
     node: Figure,
     modifier: Modifier = Modifier,
 ) {
+    RenderFigureBlockModel(
+        model = FigureBlockModel(
+            identity = com.hrm.markdown.renderer.internal.core.identity.RenderIdentity(
+                stableId = node.stableKey.toLong(),
+                contentRevision = node.contentHash,
+                layoutRevision = node.contentHash,
+                paintRevision = 0L,
+            ),
+            imageUrl = node.imageUrl,
+            caption = node.caption,
+            imageWidth = node.imageWidth,
+            imageHeight = node.imageHeight,
+            attributes = node.attributes,
+        ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun RenderFigureBlockModel(
+    model: FigureBlockModel,
+    modifier: Modifier = Modifier,
+) {
     val theme = LocalMarkdownTheme.current
     val customRenderer = LocalImageRenderer.current
 
@@ -37,12 +62,12 @@ internal fun FigureRenderer(
     ) {
         // 渲染图片
         val imageData = MarkdownImageData(
-            url = node.imageUrl,
-            altText = node.caption,
-            title = node.caption,
-            width = node.imageWidth,
-            height = node.imageHeight,
-            attributes = node.attributes,
+            url = model.imageUrl,
+            altText = model.caption,
+            title = model.caption,
+            width = model.imageWidth,
+            height = model.imageHeight,
+            attributes = model.attributes,
         )
         if (customRenderer != null) {
             customRenderer(imageData, Modifier)
@@ -51,9 +76,9 @@ internal fun FigureRenderer(
         }
 
         // 渲染 figcaption（标题）
-        if (node.caption.isNotEmpty()) {
+        if (model.caption.isNotEmpty()) {
             BasicText(
-                text = node.caption,
+                text = model.caption,
                 style = theme.bodyStyle.copy(
                     fontStyle = FontStyle.Italic,
                     fontSize = theme.bodyStyle.fontSize * 0.875f,
@@ -64,4 +89,15 @@ internal fun FigureRenderer(
             )
         }
     }
+}
+
+@Composable
+internal fun RenderFigureLayoutBlockModel(
+    model: LayoutFigureBlockModel,
+    modifier: Modifier = Modifier,
+) {
+    RenderFigureBlockModel(
+        model = model.block,
+        modifier = modifier,
+    )
 }

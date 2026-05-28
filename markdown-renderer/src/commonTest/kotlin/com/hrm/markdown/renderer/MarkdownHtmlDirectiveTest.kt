@@ -1,8 +1,6 @@
 package com.hrm.markdown.renderer
 
 import com.hrm.markdown.parser.MarkdownParser
-import com.hrm.markdown.parser.ast.DirectiveBlock
-import com.hrm.markdown.parser.ast.DirectiveInline
 import com.hrm.markdown.runtime.HtmlInlineDirectiveFallback
 import com.hrm.markdown.runtime.HtmlDirectiveFallback
 import com.hrm.markdown.runtime.MarkdownInputTransformer
@@ -38,9 +36,9 @@ class MarkdownHtmlDirectiveTest {
         override val id: String = "video"
         override val inputTransformers: List<MarkdownInputTransformer> = listOf(VideoSyntaxTransformer())
         private val fallback = object : HtmlDirectiveFallback {
-            override fun render(node: DirectiveBlock): String {
-                val title = node.args["title"].orEmpty()
-                val url = node.args["url"].orEmpty()
+            override fun render(snapshot: com.hrm.markdown.runtime.DirectiveBlockSnapshot): String {
+                val title = snapshot.args["title"].orEmpty()
+                val url = snapshot.args["url"].orEmpty()
                 return """<div class="video-embed" data-url="$url">$title</div>"""
             }
         }
@@ -52,8 +50,8 @@ class MarkdownHtmlDirectiveTest {
     private object BadgeDirectivePlugin : MarkdownDirectivePlugin {
         override val id: String = "badge"
         private val fallback = object : HtmlInlineDirectiveFallback {
-            override fun render(node: DirectiveInline): String {
-                val text = node.args["text"].orEmpty()
+            override fun render(snapshot: com.hrm.markdown.runtime.DirectiveInlineSnapshot): String {
+                val text = snapshot.args["text"].orEmpty()
                 return """<span class="badge-inline">$text</span>"""
             }
         }

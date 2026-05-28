@@ -3,6 +3,8 @@ package com.hrm.markdown.renderer
 import com.hrm.markdown.parser.MarkdownParser
 import com.hrm.markdown.parser.ast.Document
 import com.hrm.markdown.parser.html.HtmlRenderer
+import com.hrm.markdown.runtime.DirectiveBlockSnapshot
+import com.hrm.markdown.runtime.DirectiveInlineSnapshot
 import com.hrm.markdown.runtime.MarkdownDirectivePlugin
 import com.hrm.markdown.runtime.MarkdownDirectiveRegistry
 import com.hrm.markdown.runtime.MarkdownDirectivePipeline
@@ -52,10 +54,22 @@ object MarkdownHtml {
             escapeHtml = escapeHtml,
             xhtml = xhtml,
             directiveBlockFallback = { node ->
-                registry.findHtmlDirectiveFallback(node.tagName)?.render(node)
+                registry.findHtmlDirectiveFallback(node.tagName)?.render(
+                    DirectiveBlockSnapshot(
+                        tagName = node.tagName,
+                        args = node.args,
+                        hasContent = node.children.isNotEmpty(),
+                    )
+                )
             },
             directiveInlineFallback = { node ->
-                registry.findHtmlInlineDirectiveFallback(node.tagName)?.render(node)
+                registry.findHtmlInlineDirectiveFallback(node.tagName)?.render(
+                    DirectiveInlineSnapshot(
+                        tagName = node.tagName,
+                        args = node.args,
+                        alternateText = node.literal,
+                    )
+                )
             }
         )
         return renderer.render(document)

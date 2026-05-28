@@ -1,6 +1,5 @@
-package com.hrm.markdown.renderer.inline
+package com.hrm.markdown.renderer.internal.layout.inline
 
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -13,15 +12,13 @@ import kotlin.math.ceil
 private val WHITESPACE_BOUNDARY_REGEX = Regex("(?<=\\s)|(?=\\s)")
 
 internal fun computeInlineFlowLayout(
-    annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    input: InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: TextMeasurer,
     maxWidthPx: Float,
     maxLines: Int,
 ): InlineFlowLayout {
-    val tokens = tokenizeAnnotatedString(annotated, inlineContents)
     val textStyle = textMeasurementStyle(style)
     val baseLineHeightPx = baseLineHeightPx(style, density)
     val baseMetrics = textMeasurer.measure(
@@ -52,9 +49,8 @@ internal fun computeInlineFlowLayout(
         )
     }
 
-    fun inlineSizePx(id: String): Pair<Float, Float> {
-        val ic = inlineContents[id] ?: return 0f to 0f
-        return placeholderSizePx(ic.inlineTextContent, density)
+    fun inlineSizePx(placeholder: InlinePlaceholderLayoutSpec): Pair<Float, Float> {
+        return placeholderSizePx(placeholder, density)
     }
 
     val lines = ArrayList<InlineFlowLine>()
@@ -86,32 +82,30 @@ internal fun computeInlineFlowLayout(
         lineCount++
     }
 
-    for (token in tokens) {
+    for (token in input.segments) {
         if (lineCount >= maxLines) break
         when (token) {
-            Token.Newline -> flushLine(force = true)
-            is Token.Inline -> {
-                val (w, h) = inlineSizePx(token.id)
+            InlineFlowSegment.Newline -> flushLine(force = true)
+            is InlineFlowSegment.InlineRun -> {
+                val (w, h) = inlineSizePx(token.placeholder)
                 if (w <= 0f || h <= 0f) continue
                 if (currentWidth > 0f && currentWidth + w > maxWidthPx) {
                     flushLine(force = true)
                     if (lineCount >= maxLines) break
                 }
-                val ic = inlineContents[token.id] ?: continue
                 currentItems.add(
                     LineItem.InlineItem(
                         id = token.id,
                         widthPx = w,
                         heightPx = h,
-                        alternateText = ic.alternateText,
-                        content = { ic.inlineTextContent.children(ic.alternateText) },
+                        alternateText = token.placeholder.alternateText,
                     )
                 )
                 currentWidth += w
                 maxItemHeight = maxOf(maxItemHeight, h)
             }
 
-            is Token.Text -> {
+            is InlineFlowSegment.TextRun -> {
                 var remaining = token.annotated
                 while (remaining.isNotEmpty() && lineCount < maxLines) {
                     val measured = measureText(remaining)
@@ -228,49 +222,6 @@ private fun AnnotatedString.trimLeadingSpaces(): AnnotatedString {
     return if (i == 0) this else subSequence(i, s.length)
 }
 
-internal fun tokenizeAnnotatedString(
-    annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
-): List<Token> {
-    val text = annotated.text
-    if (text.isEmpty()) return emptyList()
-
-    val tokens = ArrayList<Token>()
-    var start = 0
-    fun pushText(end: Int) {
-        if (end > start) {
-            tokens += Token.Text(annotated.subSequence(start, end))
-        }
-        start = end
-    }
-
-    for (i in text.indices) {
-        when (text[i]) {
-            '\n' -> {
-                pushText(i)
-                tokens += Token.Newline
-                start = i + 1
-            }
-
-            INLINE_PLACEHOLDER_CHAR -> {
-                pushText(i)
-                val annotation = annotated.getStringAnnotations(
-                    tag = INLINE_PLACEHOLDER_TAG,
-                    start = i,
-                    end = i + 1
-                )
-                val id = annotation.firstOrNull { inlineContents.containsKey(it.item) }?.item
-                if (id != null) {
-                    tokens += Token.Inline(id)
-                }
-                start = i + 1
-            }
-        }
-    }
-    pushText(text.length)
-    return tokens
-}
-
 internal fun textMeasurementStyle(style: TextStyle): TextStyle {
     return if (style.lineHeight.value.isNaN()) style else style.copy(lineHeight = TextUnit.Unspecified)
 }
@@ -283,38 +234,35 @@ internal fun baseLineHeightPx(style: TextStyle, density: Density): Float = with(
 }.coerceAtLeast(0f)
 
 internal fun placeholderSizePx(
-    inlineTextContent: InlineTextContent,
+    placeholder: InlinePlaceholderLayoutSpec,
     density: Density,
 ): Pair<Float, Float> {
-    val wPx = with(density) { inlineTextContent.placeholder.width.toPx() }
-    val hPx = with(density) { inlineTextContent.placeholder.height.toPx() }
+    val wPx = with(density) { placeholder.width.toPx() }
+    val hPx = with(density) { placeholder.height.toPx() }
     return wPx to hPx
 }
 
 internal fun computeMaxIntrinsicWidthPx(
-    annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    input: InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: TextMeasurer,
 ): Int {
-    val tokens = tokenizeAnnotatedString(annotated, inlineContents)
     val textStyle = textMeasurementStyle(style)
     var lineWidth = 0f
     var maxLineWidth = 0f
-    for (token in tokens) {
+    for (token in input.segments) {
         when (token) {
-            Token.Newline -> {
+            InlineFlowSegment.Newline -> {
                 maxLineWidth = maxOf(maxLineWidth, lineWidth)
                 lineWidth = 0f
             }
 
-            is Token.Inline -> {
-                val entry = inlineContents[token.id] ?: continue
-                lineWidth += placeholderSizePx(entry.inlineTextContent, density).first
+            is InlineFlowSegment.InlineRun -> {
+                lineWidth += placeholderSizePx(token.placeholder, density).first
             }
 
-            is Token.Text -> {
+            is InlineFlowSegment.TextRun -> {
                 if (token.annotated.isEmpty()) continue
                 val width = textMeasurer.measure(
                     text = token.annotated,
@@ -332,24 +280,22 @@ internal fun computeMaxIntrinsicWidthPx(
 }
 
 internal fun computeMinIntrinsicWidthPx(
-    annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    input: InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: TextMeasurer,
 ): Int {
     val textStyle = textMeasurementStyle(style)
     var maxPieceWidth = 0f
-    for (token in tokenizeAnnotatedString(annotated, inlineContents)) {
+    for (token in input.segments) {
         when (token) {
-            Token.Newline -> Unit
-            is Token.Inline -> {
-                val entry = inlineContents[token.id] ?: continue
+            InlineFlowSegment.Newline -> Unit
+            is InlineFlowSegment.InlineRun -> {
                 maxPieceWidth =
-                    maxOf(maxPieceWidth, placeholderSizePx(entry.inlineTextContent, density).first)
+                    maxOf(maxPieceWidth, placeholderSizePx(token.placeholder, density).first)
             }
 
-            is Token.Text -> {
+            is InlineFlowSegment.TextRun -> {
                 val pieces = token.annotated.text.split(WHITESPACE_BOUNDARY_REGEX)
                 var cursor = 0
                 for (piece in pieces) {
@@ -373,8 +319,7 @@ internal fun computeMinIntrinsicWidthPx(
 }
 
 internal fun computeIntrinsicHeightPx(
-    annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    input: InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: TextMeasurer,
@@ -383,8 +328,7 @@ internal fun computeIntrinsicHeightPx(
 ): Int {
     val targetWidth = if (widthPx == Constraints.Infinity || widthPx <= 0) {
         computeMaxIntrinsicWidthPx(
-            annotated,
-            inlineContents,
+            input,
             style,
             density,
             textMeasurer
@@ -393,8 +337,7 @@ internal fun computeIntrinsicHeightPx(
         widthPx
     }
     val layout = computeInlineFlowLayout(
-        annotated = annotated,
-        inlineContents = inlineContents,
+        input = input,
         style = style,
         density = density,
         textMeasurer = textMeasurer,

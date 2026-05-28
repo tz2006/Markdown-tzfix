@@ -28,10 +28,44 @@ internal fun DirectiveBlockRenderer(
     node: DirectiveBlock,
     modifier: Modifier = Modifier,
 ) {
+    RenderDirectiveFallbackBlock(
+        tagName = node.tagName,
+        args = node.args,
+        modifier = modifier,
+    ) {
+        if (node.children.isNotEmpty()) {
+            MarkdownBlockChildren(
+                parent = node,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun RenderDirectiveFallbackBlockModel(
+    tagName: String,
+    args: Map<String, String>,
+    modifier: Modifier = Modifier,
+    renderChildren: (@Composable () -> Unit)? = null,
+) {
+    RenderDirectiveFallbackBlock(
+        tagName = tagName,
+        args = args,
+        modifier = modifier,
+        renderChildren = renderChildren,
+    )
+}
+
+@Composable
+private fun RenderDirectiveFallbackBlock(
+    tagName: String,
+    args: Map<String, String>,
+    modifier: Modifier = Modifier,
+    renderChildren: (@Composable () -> Unit)? = null,
+) {
     val theme = LocalMarkdownTheme.current
     val shape = RoundedCornerShape(8.dp)
-
-    // 复用主题中的颜色，适配亮/暗模式
     val borderColor = theme.blockQuoteBorderColor
     val backgroundColor = theme.codeBlockBackground
     val tagColor = theme.linkColor
@@ -44,10 +78,9 @@ internal fun DirectiveBlockRenderer(
             .background(backgroundColor, shape)
             .padding(12.dp),
     ) {
-        // 标签名 + 参数
         Row {
             Text(
-                text = "{% ${node.tagName}",
+                text = "{% $tagName",
                 style = theme.bodyStyle.copy(
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.SemiBold,
@@ -55,8 +88,8 @@ internal fun DirectiveBlockRenderer(
                     color = tagColor,
                 ),
             )
-            if (node.args.isNotEmpty()) {
-                val argsText = node.args.entries.joinToString(" ") { (k, v) ->
+            if (args.isNotEmpty()) {
+                val argsText = args.entries.joinToString(" ") { (k, v) ->
                     if (k.startsWith("_")) v else "$k=$v"
                 }
                 Text(
@@ -78,13 +111,10 @@ internal fun DirectiveBlockRenderer(
                 ),
             )
         }
-
-        // 子内容
-        if (node.children.isNotEmpty()) {
-            MarkdownBlockChildren(
-                parent = node,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+        if (renderChildren != null) {
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                renderChildren()
+            }
         }
     }
 }

@@ -14,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.hrm.markdown.parser.ast.BlankLine
 import com.hrm.markdown.parser.ast.Document
-import com.hrm.markdown.parser.ast.FootnoteDefinition
 import com.hrm.markdown.parser.ast.Node
 import com.hrm.markdown.parser.log.HLog
 import com.hrm.markdown.renderer.block.blockRenderRevision
@@ -26,7 +25,6 @@ internal data class MarkdownBlockRenderState(
     val blockNodes: List<Node>,
     val renderBlocks: List<Node>,
     val effectivePagination: Boolean,
-    val footnoteDefinitionItemIndexes: Map<String, Int>,
     val expandAllBlocks: () -> Unit,
 )
 
@@ -90,20 +88,6 @@ internal fun rememberMarkdownBlockRenderState(
         if (effectiveVisibleBlockCount <= 0) return@run emptyList()
         blockNodes.subList(0, effectiveVisibleBlockCount)
     }
-    val footnoteDefinitionItemIndexes = remember(blockNodes, hasHeader, renderMode) {
-        if (renderMode != MarkdownRenderMode.LazyColumn) {
-            emptyMap()
-        } else {
-            buildMap {
-                val headerOffset = if (hasHeader) 1 else 0
-                blockNodes.forEachIndexed { index, node ->
-                    if (node is FootnoteDefinition) {
-                        put(node.label, index + headerOffset)
-                    }
-                }
-            }
-        }
-    }
     val currentBlockCount = rememberUpdatedState(blockNodes.size)
     val expandAllBlocks: () -> Unit = remember {
         { visibleBlockCount = currentBlockCount.value }
@@ -113,7 +97,6 @@ internal fun rememberMarkdownBlockRenderState(
         blockNodes = blockNodes,
         renderBlocks = renderBlocks,
         effectivePagination = effectivePagination,
-        footnoteDefinitionItemIndexes = footnoteDefinitionItemIndexes,
         expandAllBlocks = expandAllBlocks,
     )
 }

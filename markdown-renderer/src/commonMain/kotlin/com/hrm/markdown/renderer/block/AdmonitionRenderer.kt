@@ -18,6 +18,7 @@ import com.hrm.markdown.parser.ast.Admonition
 import com.hrm.markdown.renderer.AdmonitionStyle
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.MarkdownBlockChildren
+import com.hrm.markdown.renderer.internal.core.model.AdmonitionBlockModel
 
 /**
  * Admonition 渲染器 (> [!NOTE], > [!WARNING] 等)。
@@ -27,8 +28,43 @@ internal fun AdmonitionRenderer(
     node: Admonition,
     modifier: Modifier = Modifier,
 ) {
+    RenderAdmonitionContainer(
+        type = node.type,
+        title = node.title,
+        modifier = modifier,
+    ) {
+        if (node.children.isNotEmpty()) {
+            MarkdownBlockChildren(
+                parent = node,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun RenderAdmonitionBlockModel(
+    model: AdmonitionBlockModel,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    RenderAdmonitionContainer(
+        type = model.type,
+        title = model.title,
+        modifier = modifier,
+        content = content,
+    )
+}
+
+@Composable
+private fun RenderAdmonitionContainer(
+    type: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
     val theme = LocalMarkdownTheme.current
-    val style = theme.admonitionStyles[node.type.uppercase()]
+    val style = theme.admonitionStyles[type.uppercase()]
         ?: theme.admonitionStyles["NOTE"]
         ?: return
 
@@ -54,7 +90,7 @@ internal fun AdmonitionRenderer(
                 modifier = Modifier.padding(end = 8.dp),
             )
             Text(
-                text = node.title.ifEmpty { node.type.uppercase() },
+                text = title.ifEmpty { type.uppercase() },
                 style = theme.bodyStyle.copy(
                     fontWeight = FontWeight.SemiBold,
                     color = style.titleColor,
@@ -62,12 +98,6 @@ internal fun AdmonitionRenderer(
             )
         }
 
-        // 内容
-        if (node.children.isNotEmpty()) {
-            MarkdownBlockChildren(
-                parent = node,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
+        content()
     }
 }

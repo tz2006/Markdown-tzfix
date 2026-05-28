@@ -181,6 +181,12 @@ class VideoSyntaxTransformer : MarkdownInputTransformer {
 }
 ```
 
+`DirectiveBlockRenderScope` 和 `DirectiveInlineRenderScope` 现在基于 snapshot。
+当你需要读取结构化 directive 数据时，请使用 `scope.directive`；
+`scope.tagName`、`scope.args`、`scope.alternateText` 仍保留为便捷访问入口。
+HTML 导出侧的 `HtmlDirectiveFallback` 与 `HtmlInlineDirectiveFallback`
+也改为接收 snapshot，而不再直接暴露 parser AST 节点。
+
 HTML 导出会走同一条 directive 运行时链路：
 
 ```kotlin

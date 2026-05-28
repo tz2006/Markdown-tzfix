@@ -181,6 +181,12 @@ class VideoSyntaxTransformer : MarkdownInputTransformer {
 }
 ```
 
+`DirectiveBlockRenderScope` and `DirectiveInlineRenderScope` are snapshot-based.
+Use `scope.directive` when you need the structured directive payload, while `scope.tagName`,
+`scope.args`, and `scope.alternateText` remain available as convenience accessors.
+For HTML export, `HtmlDirectiveFallback` and `HtmlInlineDirectiveFallback` also receive
+snapshot objects instead of parser AST nodes.
+
 HTML export uses the same directive pipeline:
 
 ```kotlin

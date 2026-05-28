@@ -16,7 +16,6 @@ import com.hrm.markdown.parser.ast.BlankLine
 import com.hrm.markdown.parser.ast.ContainerNode
 import com.hrm.markdown.parser.ast.Node
 import com.hrm.markdown.renderer.block.BlockRenderer
-import com.hrm.markdown.renderer.block.blockRenderRevision
 
 @Composable
 internal fun MarkdownDocumentLayout(
@@ -93,10 +92,7 @@ internal fun MarkdownBlockColumn(
 private fun MarkdownBlockItems(blocks: List<Node>) {
     for (node in blocks) {
         key(node::class, node.stableKey) {
-            BlockRenderer(
-                node = node,
-                renderRevision = blockRenderRevision(node),
-            )
+            BlockRenderer(node = node)
         }
     }
 }
@@ -124,10 +120,7 @@ private fun MarkdownBlockLazyColumn(
             items = blocks,
             key = { it.stableKey },
         ) { node ->
-            BlockRenderer(
-                node = node,
-                renderRevision = blockRenderRevision(node),
-            )
+            BlockRenderer(node = node)
         }
         if (footer != null) {
             item(key = "markdown_footer") {

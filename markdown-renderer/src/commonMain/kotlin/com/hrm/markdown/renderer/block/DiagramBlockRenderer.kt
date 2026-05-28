@@ -16,6 +16,7 @@ import com.hrm.diagram.render.compose.DiagramView
 import com.hrm.markdown.parser.ast.DiagramBlock
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.diagram.DiagramFallback
+import com.hrm.markdown.renderer.internal.core.model.DiagramBlockWidgetModel
 
 /**
  * 图表块渲染器。
@@ -28,18 +29,38 @@ internal fun DiagramBlockRenderer(
     node: DiagramBlock,
     modifier: Modifier = Modifier,
 ) {
+    RenderDiagramBlockWidgetModel(
+        model = DiagramBlockWidgetModel(
+            identity = com.hrm.markdown.renderer.internal.core.identity.RenderIdentity(
+                stableId = node.stableKey.toLong(),
+                contentRevision = node.contentHash,
+                layoutRevision = node.contentHash,
+                paintRevision = 0L,
+            ),
+            diagramType = node.diagramType,
+            code = node.literal,
+        ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun RenderDiagramBlockWidgetModel(
+    model: DiagramBlockWidgetModel,
+    modifier: Modifier = Modifier,
+) {
     val theme = LocalMarkdownTheme.current
     val diagramBackground = Color(theme.diagramTheme.colors.canvas.argb)
-    val code = node.literal.trimEnd('\n')
-    val diagramType = node.diagramType.lowercase()
+    val code = model.code.trimEnd('\n')
+    val diagramType = model.diagramType.lowercase()
     val detection = remember(code, diagramType) {
         Diagram.detectSource(
             source = code,
             hint = diagramType,
         )
     }
-    val typeName = remember(node.diagramType) {
-        node.diagramType.replaceFirstChar {
+    val typeName = remember(model.diagramType) {
+        model.diagramType.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase() else it.toString()
         }
     }
