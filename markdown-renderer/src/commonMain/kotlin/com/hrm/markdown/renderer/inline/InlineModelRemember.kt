@@ -2,36 +2,13 @@ package com.hrm.markdown.renderer.inline
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
-import com.hrm.codehigh.theme.LocalCodeTheme
-import com.hrm.latex.renderer.measure.rememberLatexMeasurer
 import com.hrm.markdown.parser.ast.ContainerNode
 import com.hrm.markdown.parser.ast.Node
-import com.hrm.markdown.renderer.LocalCodeHighlightTheme
-import com.hrm.markdown.renderer.LocalMarkdownDirectiveRegistry
-import com.hrm.markdown.renderer.LocalMarkdownTheme
-import com.hrm.markdown.renderer.LocalOnFootnoteClick
 import com.hrm.markdown.renderer.internal.core.compile.compileInlineModel
 import com.hrm.markdown.renderer.internal.core.model.InlineModel
 
 private const val INLINE_REVISION_OFFSET_BASIS = -3750763034362895579L
 private const val INLINE_REVISION_FNV_PRIME = 1099511628211L
-
-@Composable
-internal fun rememberInlineContent(
-    parent: ContainerNode,
-    onLinkClick: ((String) -> Unit)? = null,
-    hostTextStyle: TextStyle = LocalMarkdownTheme.current.bodyStyle,
-): InlineRenderResult {
-    val inlineModel = rememberInlineModel(parent)
-    return rememberInlineContent(
-        model = inlineModel,
-        onLinkClick = onLinkClick,
-        hostTextStyle = hostTextStyle,
-    )
-}
 
 @Composable
 internal fun rememberInlineModel(parent: ContainerNode): InlineModel {
@@ -60,64 +37,6 @@ internal fun rememberInlineModel(
             inlineRevision = inlineRevision,
         )
     }
-}
-
-@Composable
-internal fun rememberInlineContent(
-    model: InlineModel,
-    onLinkClick: ((String) -> Unit)? = null,
-    hostTextStyle: TextStyle = LocalMarkdownTheme.current.bodyStyle,
-): InlineRenderResult {
-    val theme = LocalMarkdownTheme.current
-    val directiveRegistry = LocalMarkdownDirectiveRegistry.current
-    val onFootnoteClick = LocalOnFootnoteClick.current
-    val latexMeasurer = rememberLatexMeasurer()
-    val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
-    val inlineCodeTheme = LocalCodeHighlightTheme.current ?: LocalCodeTheme.current
-    return remember(
-        model,
-        theme,
-        directiveRegistry,
-        onLinkClick,
-        onFootnoteClick,
-        hostTextStyle,
-        latexMeasurer,
-        density,
-        textMeasurer,
-        inlineCodeTheme
-    ) {
-        buildInlineRenderResultFromModel(
-            model = model,
-            theme = theme,
-            hostTextStyle = hostTextStyle,
-            directiveRegistry = directiveRegistry,
-            onLinkClick = onLinkClick,
-            onFootnoteClick = onFootnoteClick,
-            latexMeasurer = latexMeasurer,
-            density = density,
-            textMeasurer = textMeasurer,
-            codeTheme = inlineCodeTheme,
-        )
-    }
-}
-
-@Composable
-internal fun rememberInlineNodesContent(
-    nodes: List<Node>,
-    inlineRevision: Long,
-    onLinkClick: ((String) -> Unit)? = null,
-    hostTextStyle: TextStyle = LocalMarkdownTheme.current.bodyStyle,
-): InlineRenderResult {
-    val inlineModel = rememberInlineModel(
-        nodes = nodes,
-        inlineRevision = inlineRevision,
-    )
-    return rememberInlineContent(
-        model = inlineModel,
-        onLinkClick = onLinkClick,
-        hostTextStyle = hostTextStyle,
-    )
 }
 
 internal fun inlineNodesRevision(nodes: List<Node>): Long {

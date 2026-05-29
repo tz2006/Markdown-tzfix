@@ -22,9 +22,7 @@ import com.hrm.markdown.parser.ast.TableCell
 import com.hrm.markdown.parser.ast.TableHead
 import com.hrm.markdown.parser.ast.TableRow
 import com.hrm.markdown.renderer.LocalMarkdownTheme
-import com.hrm.markdown.renderer.LocalOnLinkClick
-import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
-import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.inline.InlineLayoutBlockText
 import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.model.TableBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableCellBlockModel
@@ -161,7 +159,6 @@ private fun TableCellRenderer(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
 
     val textAlign = when (alignment) {
         Table.Alignment.LEFT -> TextAlign.Start
@@ -182,17 +179,9 @@ private fun TableCellRenderer(
     }
 
     val inlineModel = rememberInlineModel(cell)
-    val inlineResult = rememberInlineContent(
-        model = inlineModel,
-        onLinkClick = onLinkClick,
-        hostTextStyle = style,
-    )
     Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
-        InlinePaintPayloadText(
-            annotated = inlineResult.annotated,
-            paintPayloads = inlineResult.paintPayloads,
-            flowInput = inlineResult.flowInput,
-            inlineModel = inlineModel,
+        InlineLayoutBlockText(
+            model = inlineModel,
             style = style,
             maxLines = 1,
         )
@@ -337,7 +326,6 @@ private fun TableBlockModelCellRenderer(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
     val textAlign = when (alignment) {
         Table.Alignment.LEFT -> TextAlign.Start
         Table.Alignment.CENTER -> TextAlign.Center
@@ -353,17 +341,9 @@ private fun TableBlockModelCellRenderer(
         Box(modifier = modifier)
         return
     }
-    val inlineResult = rememberInlineContent(
-        model = cell.inline,
-        onLinkClick = onLinkClick,
-        hostTextStyle = style,
-    )
     Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
-        InlinePaintPayloadText(
-            annotated = inlineResult.annotated,
-            paintPayloads = inlineResult.paintPayloads,
-            flowInput = inlineResult.flowInput,
-            inlineModel = cell.inline,
+        InlineLayoutBlockText(
+            model = cell.inline,
             style = style,
             maxLines = 1,
         )

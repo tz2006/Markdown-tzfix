@@ -1,6 +1,15 @@
 package com.hrm.markdown.renderer.internal.layout.inline
 
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Density
+import com.hrm.codehigh.theme.CodeTheme
+import com.hrm.latex.renderer.measure.LatexMeasurerState
+import com.hrm.markdown.renderer.MarkdownTheme
 import com.hrm.markdown.renderer.inline.InlinePlaceholderId
+import com.hrm.markdown.renderer.inline.InlineRenderResult
+import com.hrm.markdown.renderer.inline.InlineWidgetPaintPayload
+import com.hrm.markdown.renderer.inline.buildInlineRenderResultFromModel
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromText
 import com.hrm.markdown.renderer.internal.core.model.InlineModel
@@ -8,11 +17,11 @@ import com.hrm.markdown.renderer.internal.core.model.InlineWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.WidgetAtom
 import com.hrm.markdown.renderer.internal.layout.model.LayoutInlineBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutInlineLine
+import com.hrm.markdown.renderer.internal.layout.model.LayoutInsets
 import com.hrm.markdown.renderer.internal.layout.model.LayoutRect
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTextRun
 import com.hrm.markdown.renderer.internal.layout.model.LayoutWidgetRun
-import com.hrm.markdown.renderer.inline.InlineWidgetPaintPayload
-import androidx.compose.ui.text.TextStyle
+import com.hrm.markdown.runtime.MarkdownDirectiveRegistry
 
 internal fun inlineWidgetByPlaceholderId(
     model: InlineModel,
@@ -97,5 +106,97 @@ internal fun buildInlineLayoutBlockModel(
             layout = layout,
             widgetById = widgetById,
         ),
+    )
+}
+
+internal fun buildInlineLayoutBlockFromModel(
+    identity: RenderIdentity,
+    model: InlineModel,
+    style: TextStyle,
+    left: Float,
+    top: Float,
+    width: Float,
+    insets: LayoutInsets = LayoutInsets(),
+    theme: MarkdownTheme,
+    directiveRegistry: MarkdownDirectiveRegistry,
+    latexMeasurer: LatexMeasurerState,
+    density: Density,
+    textMeasurer: TextMeasurer,
+    codeTheme: CodeTheme? = null,
+    onLinkClick: ((String) -> Unit)? = null,
+    onFootnoteClick: ((String) -> Unit)? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    showDivider: Boolean = false,
+): LayoutInlineBlockModel {
+    val inlineResult = buildInlineRenderResultFromModel(
+        model = model,
+        theme = theme,
+        hostTextStyle = style,
+        directiveRegistry = directiveRegistry,
+        onLinkClick = onLinkClick,
+        onFootnoteClick = onFootnoteClick,
+        latexMeasurer = latexMeasurer,
+        density = density,
+        textMeasurer = textMeasurer,
+        codeTheme = codeTheme,
+    )
+    return buildInlineLayoutBlockFromResult(
+        identity = identity,
+        model = model,
+        style = style,
+        left = left,
+        top = top,
+        width = width,
+        insets = insets,
+        theme = theme,
+        inlineResult = inlineResult,
+        density = density,
+        textMeasurer = textMeasurer,
+        maxLines = maxLines,
+        showDivider = showDivider,
+    )
+}
+
+internal fun buildInlineLayoutBlockFromResult(
+    identity: RenderIdentity,
+    model: InlineModel,
+    style: TextStyle,
+    left: Float,
+    top: Float,
+    width: Float,
+    insets: LayoutInsets = LayoutInsets(),
+    theme: MarkdownTheme,
+    inlineResult: InlineRenderResult,
+    density: Density,
+    textMeasurer: TextMeasurer,
+    maxLines: Int = Int.MAX_VALUE,
+    showDivider: Boolean = false,
+): LayoutInlineBlockModel {
+    val contentLeft = left + insets.left
+    val contentTop = top + insets.top
+    val contentWidth = (width - insets.left - insets.right).coerceAtLeast(0f)
+    val layout = computeInlineFlowLayout(
+        input = inlineResult.flowInput,
+        style = style,
+        density = density,
+        textMeasurer = textMeasurer,
+        maxWidthPx = contentWidth,
+        maxLines = maxLines,
+    )
+    val dividerHeight = if (showDivider) {
+        4f + with(density) { theme.dividerThickness.toPx() }
+    } else {
+        0f
+    }
+    val contentHeight = layout.heightPx + dividerHeight
+    return buildInlineLayoutBlockModel(
+        identity = identity,
+        frame = LayoutRect(left, top, width, insets.top + contentHeight + insets.bottom),
+        contentFrame = LayoutRect(contentLeft, contentTop, contentWidth, contentHeight),
+        style = style,
+        layout = layout,
+        inlinePayloads = inlineResult.paintPayloads,
+        widgetById = inlineWidgetByPlaceholderId(model),
+        showDivider = showDivider,
     )
 }

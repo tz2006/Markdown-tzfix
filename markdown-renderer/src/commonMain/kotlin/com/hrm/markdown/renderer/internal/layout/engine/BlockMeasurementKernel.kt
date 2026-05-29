@@ -34,6 +34,7 @@ internal fun LayoutEnvironment.measureInlineBlock(
         theme = markdownTheme,
         hostTextStyle = style,
         directiveRegistry = compileEnvironment.directiveRegistry,
+        latexMeasurer = latexMeasurer,
         density = density,
         textMeasurer = textMeasurer,
         codeTheme = codeTheme,

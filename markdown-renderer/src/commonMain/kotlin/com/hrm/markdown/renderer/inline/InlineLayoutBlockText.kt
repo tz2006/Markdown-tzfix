@@ -6,49 +6,68 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import com.hrm.codehigh.theme.LocalCodeTheme
+import com.hrm.latex.renderer.measure.rememberLatexMeasurer
+import com.hrm.markdown.renderer.LocalCodeHighlightTheme
+import com.hrm.markdown.renderer.LocalMarkdownDirectiveRegistry
+import com.hrm.markdown.renderer.LocalMarkdownTheme
+import com.hrm.markdown.renderer.LocalOnFootnoteClick
+import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.internal.compose.PaintInlineLayoutContent
-import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.model.InlineModel
-import com.hrm.markdown.renderer.internal.layout.inline.InlineFlowInput
-import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutBlockModel
-import com.hrm.markdown.renderer.internal.layout.inline.computeInlineFlowLayout
+import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutBlockFromResult
 import com.hrm.markdown.renderer.internal.layout.inline.computeIntrinsicHeightPx
 import com.hrm.markdown.renderer.internal.layout.inline.computeMaxIntrinsicWidthPx
 import com.hrm.markdown.renderer.internal.layout.inline.computeMinIntrinsicWidthPx
-import com.hrm.markdown.renderer.internal.layout.inline.inlineWidgetByPlaceholderId
-import com.hrm.markdown.renderer.internal.layout.model.LayoutRect
 
 @Composable
-internal fun InlinePaintPayloadText(
-    annotated: AnnotatedString,
-    paintPayloads: Map<InlinePlaceholderId, InlineWidgetPaintPayload>,
-    flowInput: InlineFlowInput,
-    inlineModel: InlineModel? = null,
+internal fun InlineLayoutBlockText(
+    model: InlineModel,
     style: TextStyle,
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
 ) {
-    if (paintPayloads.isEmpty()) {
-        androidx.compose.foundation.text.BasicText(
-            text = annotated,
-            modifier = modifier,
-            style = style,
-            maxLines = maxLines,
-        )
-        return
-    }
-
+    val theme = LocalMarkdownTheme.current
+    val directiveRegistry = LocalMarkdownDirectiveRegistry.current
+    val onLinkClick = LocalOnLinkClick.current
+    val onFootnoteClick = LocalOnFootnoteClick.current
+    val latexMeasurer = rememberLatexMeasurer()
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val measurePolicy = remember(flowInput, style, density, textMeasurer, maxLines) {
-        inlinePaintPayloadMeasurePolicy(
-            input = flowInput,
+    val inlineCodeTheme = LocalCodeHighlightTheme.current ?: LocalCodeTheme.current
+    val inlineResult = remember(
+        model,
+        theme,
+        directiveRegistry,
+        onLinkClick,
+        onFootnoteClick,
+        latexMeasurer,
+        density,
+        textMeasurer,
+        inlineCodeTheme,
+        style,
+    ) {
+        buildInlineRenderResultFromModel(
+            model = model,
+            theme = theme,
+            hostTextStyle = style,
+            directiveRegistry = directiveRegistry,
+            onLinkClick = onLinkClick,
+            onFootnoteClick = onFootnoteClick,
+            latexMeasurer = latexMeasurer,
+            density = density,
+            textMeasurer = textMeasurer,
+            codeTheme = inlineCodeTheme,
+        )
+    }
+    val measurePolicy = remember(inlineResult.flowInput, style, density, textMeasurer, maxLines) {
+        inlineLayoutBlockMeasurePolicy(
+            input = inlineResult.flowInput,
             style = style,
             density = density,
             textMeasurer = textMeasurer,
@@ -59,14 +78,19 @@ internal fun InlinePaintPayloadText(
     Layout(
         modifier = modifier,
         content = {
-            InlinePaintPayloadMeasuredContent(
-                paintPayloads = paintPayloads,
-                input = flowInput,
-                inlineModel = inlineModel,
+            InlineLayoutBlockMeasuredContent(
+                model = model,
                 style = style,
+                theme = theme,
+                directiveRegistry = directiveRegistry,
+                onLinkClick = onLinkClick,
+                onFootnoteClick = onFootnoteClick,
+                latexMeasurer = latexMeasurer,
                 density = density,
                 textMeasurer = textMeasurer,
                 maxLines = maxLines,
+                inlineCodeTheme = inlineCodeTheme,
+                inlineResult = inlineResult,
             )
         },
         measurePolicy = measurePolicy,
@@ -74,35 +98,49 @@ internal fun InlinePaintPayloadText(
 }
 
 @Composable
-private fun InlinePaintPayloadMeasuredContent(
-    paintPayloads: Map<InlinePlaceholderId, InlineWidgetPaintPayload>,
-    input: InlineFlowInput,
-    inlineModel: InlineModel?,
+private fun InlineLayoutBlockMeasuredContent(
+    model: InlineModel,
     style: TextStyle,
+    theme: com.hrm.markdown.renderer.MarkdownTheme,
+    directiveRegistry: com.hrm.markdown.runtime.MarkdownDirectiveRegistry,
+    onLinkClick: ((String) -> Unit)?,
+    onFootnoteClick: ((String) -> Unit)?,
+    latexMeasurer: com.hrm.latex.renderer.measure.LatexMeasurerState,
     density: Density,
     textMeasurer: TextMeasurer,
     maxLines: Int,
+    inlineCodeTheme: com.hrm.codehigh.theme.CodeTheme?,
+    inlineResult: InlineRenderResult,
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints {
         val maxWidthPx = with(density) { maxWidth.toPx() }
-        val layoutBlock = remember(input, inlineModel, style, maxWidthPx, density, textMeasurer, maxLines, paintPayloads) {
-            val flowLayout = computeInlineFlowLayout(
-                input = input,
+        val layoutBlock = remember(
+            model,
+            style,
+            theme,
+            directiveRegistry,
+            onLinkClick,
+            onFootnoteClick,
+            latexMeasurer,
+            density,
+            textMeasurer,
+            maxWidthPx,
+            maxLines,
+            inlineCodeTheme,
+            inlineResult,
+        ) {
+            buildInlineLayoutBlockFromResult(
+                identity = model.identity,
+                model = model,
                 style = style,
+                left = 0f,
+                top = 0f,
+                width = maxWidthPx,
+                theme = theme,
+                inlineResult = inlineResult,
                 density = density,
                 textMeasurer = textMeasurer,
-                maxWidthPx = maxWidthPx,
                 maxLines = maxLines,
-            )
-            val identity = inlineModel?.identity ?: RenderIdentity(0L, 0L, 0L, 0L)
-            buildInlineLayoutBlockModel(
-                identity = identity,
-                frame = LayoutRect(0f, 0f, flowLayout.widthPx, flowLayout.heightPx),
-                contentFrame = LayoutRect(0f, 0f, flowLayout.widthPx, flowLayout.heightPx),
-                style = style,
-                layout = flowLayout,
-                inlinePayloads = paintPayloads,
-                widgetById = inlineModel?.let(::inlineWidgetByPlaceholderId).orEmpty(),
             )
         }
 
@@ -113,8 +151,8 @@ private fun InlinePaintPayloadMeasuredContent(
     }
 }
 
-private fun inlinePaintPayloadMeasurePolicy(
-    input: InlineFlowInput,
+private fun inlineLayoutBlockMeasurePolicy(
+    input: com.hrm.markdown.renderer.internal.layout.inline.InlineFlowInput,
     style: TextStyle,
     density: Density,
     textMeasurer: TextMeasurer,

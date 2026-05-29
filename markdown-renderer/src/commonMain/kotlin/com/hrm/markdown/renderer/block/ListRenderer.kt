@@ -98,7 +98,10 @@ private fun ListItemRenderer(
         }
 
         // 内容列
-        Box(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
+        ) {
             MarkdownBlockChildren(node)
         }
     }
@@ -195,7 +198,10 @@ private fun RenderListItemBlockModel(
             }
         }
 
-        Box(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
+        ) {
             renderChildren(model.children)
         }
     }
@@ -244,7 +250,10 @@ private fun RenderListItemLayoutGroup(
             }
         }
 
-        Box(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
+        ) {
             renderChildren(item.children)
         }
     }

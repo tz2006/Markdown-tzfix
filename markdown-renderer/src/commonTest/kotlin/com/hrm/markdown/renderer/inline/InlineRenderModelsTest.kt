@@ -1,7 +1,6 @@
 package com.hrm.markdown.renderer.inline
 
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.unit.sp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -11,15 +10,15 @@ class InlineRenderModelsTest {
     fun should_build_inline_widget_paint_payload_with_placeholder_spec() {
         val payload = inlineWidgetPaintPayload(
             alternateText = "latex",
-            width = 12.sp,
-            height = 18.sp,
+            widthPx = 12f,
+            heightPx = 18f,
         ) { }
 
         val spec = payload.placeholder
 
         assertEquals("latex", spec.alternateText)
-        assertEquals(12.sp, spec.width)
-        assertEquals(18.sp, spec.height)
+        assertEquals(12f, spec.widthPx)
+        assertEquals(18f, spec.heightPx)
     }
 
     @Test

@@ -50,7 +50,7 @@ internal fun computeInlineFlowLayout(
     }
 
     fun inlineSizePx(placeholder: InlinePlaceholderLayoutSpec): Pair<Float, Float> {
-        return placeholderSizePx(placeholder, density)
+        return placeholderSizePx(placeholder)
     }
 
     val lines = ArrayList<InlineFlowLine>()
@@ -235,11 +235,8 @@ internal fun baseLineHeightPx(style: TextStyle, density: Density): Float = with(
 
 internal fun placeholderSizePx(
     placeholder: InlinePlaceholderLayoutSpec,
-    density: Density,
 ): Pair<Float, Float> {
-    val wPx = with(density) { placeholder.width.toPx() }
-    val hPx = with(density) { placeholder.height.toPx() }
-    return wPx to hPx
+    return placeholder.widthPx to placeholder.heightPx
 }
 
 internal fun computeMaxIntrinsicWidthPx(
@@ -259,7 +256,7 @@ internal fun computeMaxIntrinsicWidthPx(
             }
 
             is InlineFlowSegment.InlineRun -> {
-                lineWidth += placeholderSizePx(token.placeholder, density).first
+                lineWidth += placeholderSizePx(token.placeholder).first
             }
 
             is InlineFlowSegment.TextRun -> {
@@ -292,7 +289,7 @@ internal fun computeMinIntrinsicWidthPx(
             InlineFlowSegment.Newline -> Unit
             is InlineFlowSegment.InlineRun -> {
                 maxPieceWidth =
-                    maxOf(maxPieceWidth, placeholderSizePx(token.placeholder, density).first)
+                    maxOf(maxPieceWidth, placeholderSizePx(token.placeholder).first)
             }
 
             is InlineFlowSegment.TextRun -> {

@@ -1,6 +1,7 @@
 package com.hrm.markdown.renderer.internal.layout.engine
 
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import com.hrm.markdown.renderer.internal.core.model.AdmonitionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.BibliographyDefinitionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.BlockQuoteBlockModel
@@ -33,6 +34,7 @@ import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromText
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromValues
 import com.hrm.markdown.renderer.inline.buildInlineRenderResultFromModel
+import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutBlockFromModel
 import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutBlockModel
 import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutLines
 import com.hrm.markdown.renderer.internal.layout.inline.computeInlineFlowLayout
@@ -377,7 +379,7 @@ private fun layoutFootnoteBlock(
 private fun layoutInlineBlock(
     identity: RenderIdentity,
     model: InlineModel,
-    style: androidx.compose.ui.text.TextStyle,
+    style: TextStyle,
     left: Float,
     top: Float,
     width: Float,
@@ -385,36 +387,20 @@ private fun layoutInlineBlock(
     environment: LayoutEnvironment,
     showDivider: Boolean = false,
 ): LayoutInlineBlockModel {
-    val contentLeft = left + insets.left
-    val contentTop = top + insets.top
-    val contentWidth = (width - insets.left - insets.right).coerceAtLeast(0f)
-    val inlineResult = buildInlineRenderResultFromModel(
+    return buildInlineLayoutBlockFromModel(
+        identity = identity,
         model = model,
+        style = style,
+        left = left,
+        top = top,
+        width = width,
+        insets = insets,
         theme = environment.markdownTheme,
-        hostTextStyle = style,
         directiveRegistry = environment.compileEnvironment.directiveRegistry,
+        latexMeasurer = environment.latexMeasurer,
         density = environment.density,
         textMeasurer = environment.textMeasurer,
         codeTheme = environment.codeTheme,
-    )
-    val layout = computeInlineFlowLayout(
-        input = inlineResult.flowInput,
-        style = style,
-        density = environment.density,
-        textMeasurer = environment.textMeasurer,
-        maxWidthPx = contentWidth,
-        maxLines = Int.MAX_VALUE,
-    )
-    val dividerHeight = if (showDivider) 4f + with(environment.density) { environment.markdownTheme.dividerThickness.toPx() } else 0f
-    val contentHeight = layout.heightPx + dividerHeight
-    return buildInlineLayoutBlockModel(
-        identity = identity,
-        frame = LayoutRect(left, top, width, insets.top + contentHeight + insets.bottom),
-        contentFrame = LayoutRect(contentLeft, contentTop, contentWidth, contentHeight),
-        style = style,
-        layout = layout,
-        inlinePayloads = inlineResult.paintPayloads,
-        widgetById = inlineWidgetByPlaceholderId(model),
         showDivider = showDivider,
     )
 }

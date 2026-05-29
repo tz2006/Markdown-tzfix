@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.Modifier
 import com.hrm.codehigh.theme.CodeTheme
+import com.hrm.latex.renderer.measure.rememberLatexMeasurer
 import com.hrm.markdown.parser.ast.Document
 import com.hrm.markdown.renderer.internal.MarkdownEngineHost
 import com.hrm.markdown.renderer.internal.RendererFacadeState
@@ -85,6 +86,7 @@ internal fun MarkdownDocumentRenderer(
             )
         }
         val density = LocalDensity.current
+        val latexMeasurer = rememberLatexMeasurer()
         BoxWithConstraints(modifier = modifier) {
             val viewportWidthPx = with(density) { maxWidth.toPx() }
             val blockSpacingPx = with(density) { theme.blockSpacing.toPx() }
@@ -97,6 +99,7 @@ internal fun MarkdownDocumentRenderer(
                 blockSpacingPx,
                 density,
                 textMeasurer,
+                latexMeasurer,
             ) {
                 engineHost.layout(
                     renderDocument = internalRenderDocument,
@@ -105,6 +108,7 @@ internal fun MarkdownDocumentRenderer(
                     blockSpacing = blockSpacingPx,
                     density = density,
                     textMeasurer = textMeasurer,
+                    latexMeasurer = latexMeasurer,
                 )
             }
             val renderState = rememberMarkdownBlockRenderState(

@@ -1,8 +1,11 @@
 package com.hrm.markdown.renderer
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import com.hrm.codehigh.theme.CodeTheme
@@ -39,6 +42,42 @@ internal val LocalFootnoteNavigationState = compositionLocalOf<FootnoteNavigatio
 internal val LocalCodeHighlightTheme = compositionLocalOf<CodeTheme?> { null }
 internal val LocalIsStreaming = compositionLocalOf { false }
 internal val LocalMarkdownDirectiveRegistry = compositionLocalOf { MarkdownDirectiveRegistry.Empty }
+internal val LocalDiagramStreamingStabilizer = compositionLocalOf { DiagramStreamingStabilizer() }
+
+@Stable
+internal class DiagramStreamingStabilizer {
+    private val minHeightsPx = mutableStateMapOf<Long, Float>()
+    private val routeToDiagram = mutableStateMapOf<Long, Boolean>()
+
+    fun minHeightPx(blockStableId: Long, isStreaming: Boolean): Float {
+        return if (isStreaming) minHeightsPx[blockStableId] ?: 0f else 0f
+    }
+
+    fun observeHeight(blockStableId: Long, heightPx: Float, isStreaming: Boolean) {
+        if (!isStreaming) return
+        val previous = minHeightsPx[blockStableId] ?: 0f
+        if (heightPx > previous) {
+            minHeightsPx[blockStableId] = heightPx
+        }
+    }
+
+    fun shouldRenderDiagram(
+        blockStableId: Long,
+        detectedDiagram: Boolean,
+        isStreaming: Boolean,
+    ): Boolean {
+        if (!isStreaming) return detectedDiagram
+        if (detectedDiagram) {
+            routeToDiagram[blockStableId] = true
+        }
+        return routeToDiagram[blockStableId] ?: false
+    }
+
+    fun reset() {
+        minHeightsPx.clear()
+        routeToDiagram.clear()
+    }
+}
 
 @Composable
 internal fun ProvideRendererContext(
@@ -71,6 +110,12 @@ internal fun ProvideRendererContext(
     val stableOnFootnoteBackClick: (String) -> Unit = remember {
         { label: String -> currentOnFootnoteBackClick.value?.invoke(label) }
     }
+    val diagramStreamingStabilizer = remember { DiagramStreamingStabilizer() }
+    LaunchedEffect(isStreaming) {
+        if (!isStreaming) {
+            diagramStreamingStabilizer.reset()
+        }
+    }
 
     CompositionLocalProvider(
         LocalOnLinkClick provides stableOnLinkClick,
@@ -83,6 +128,7 @@ internal fun ProvideRendererContext(
         LocalCodeHighlightTheme provides codeTheme,
         LocalIsStreaming provides isStreaming,
         LocalMarkdownDirectiveRegistry provides directiveRegistry,
+        LocalDiagramStreamingStabilizer provides diagramStreamingStabilizer,
     ) {
         content()
     }

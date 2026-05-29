@@ -4,6 +4,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.luminance
 import com.hrm.markdown.parser.ast.Document
+import com.hrm.latex.renderer.measure.LatexMeasurerState
 import com.hrm.markdown.renderer.MarkdownTheme
 import com.hrm.markdown.renderer.internal.compose.DefaultMarkdownComposePainter
 import com.hrm.markdown.renderer.internal.compose.MarkdownComposePainter
@@ -38,6 +39,7 @@ internal class MarkdownEngineHost(
         blockSpacing: Float = 0f,
         density: Density,
         textMeasurer: TextMeasurer,
+        latexMeasurer: LatexMeasurerState,
     ): InternalLayoutDocumentModel {
         return layoutEngine.layout(
             document = renderDocument,
@@ -48,6 +50,7 @@ internal class MarkdownEngineHost(
                 codeTheme = facadeState.codeTheme,
                 density = density,
                 textMeasurer = textMeasurer,
+                latexMeasurer = latexMeasurer,
                 compileEnvironment = facadeState.toCompileEnvironment(),
             ),
         )

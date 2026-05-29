@@ -5,7 +5,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.TextUnit
 import com.hrm.markdown.renderer.internal.core.model.DirectiveInlineWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.ImageWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.InlineCodeWidgetModel
@@ -61,16 +60,16 @@ internal class InlineRenderBuildContext(
     fun emitInlineCodeWidget(
         builder: AnnotatedString.Builder,
         widget: InlineCodeWidgetModel,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitInlineWidget(
             builder = builder,
             widget = widget,
             alternateText = widget.code,
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
             content = content,
         )
     }
@@ -78,16 +77,16 @@ internal class InlineRenderBuildContext(
     fun emitImageWidget(
         builder: AnnotatedString.Builder,
         widget: ImageWidgetModel,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitInlineWidget(
             builder = builder,
             widget = widget,
             alternateText = widget.title ?: widget.altText.ifEmpty { widget.url },
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
             content = content,
         )
     }
@@ -95,16 +94,16 @@ internal class InlineRenderBuildContext(
     fun emitInlineMathWidget(
         builder: AnnotatedString.Builder,
         widget: InlineMathWidgetModel,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitInlineWidget(
             builder = builder,
             widget = widget,
             alternateText = widget.latex,
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
             content = content,
         )
     }
@@ -112,16 +111,16 @@ internal class InlineRenderBuildContext(
     fun emitSpoilerWidget(
         builder: AnnotatedString.Builder,
         widget: SpoilerWidgetModel,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitInlineWidget(
             builder = builder,
             widget = widget,
             alternateText = widget.alternateText,
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
             content = content,
         )
     }
@@ -129,16 +128,16 @@ internal class InlineRenderBuildContext(
     fun emitDirectiveInlineWidget(
         builder: AnnotatedString.Builder,
         widget: DirectiveInlineWidgetModel,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitInlineWidget(
             builder = builder,
             widget = widget,
             alternateText = widget.alternateText,
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
             content = content,
         )
     }
@@ -146,16 +145,16 @@ internal class InlineRenderBuildContext(
     fun emitRubyTextWidget(
         builder: AnnotatedString.Builder,
         widget: RubyTextWidgetModel,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitInlineWidget(
             builder = builder,
             widget = widget,
             alternateText = widget.base,
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
             content = content,
         )
     }
@@ -172,8 +171,8 @@ internal class InlineRenderBuildContext(
         builder: AnnotatedString.Builder,
         widget: InlineWidgetModel,
         alternateText: String,
-        width: TextUnit,
-        height: TextUnit,
+        widthPx: Float,
+        heightPx: Float,
         content: @Composable () -> Unit,
     ) {
         emitWidgetPayload(
@@ -181,8 +180,8 @@ internal class InlineRenderBuildContext(
             id = InlinePlaceholderId.from(widget),
             payload = inlineWidgetPaintPayload(
                 alternateText = alternateText,
-                width = width,
-                height = height,
+                widthPx = widthPx,
+                heightPx = heightPx,
                 content = content,
             ),
         )

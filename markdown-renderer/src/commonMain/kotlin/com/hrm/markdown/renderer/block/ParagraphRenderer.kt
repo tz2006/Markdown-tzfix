@@ -9,11 +9,9 @@ import com.hrm.markdown.parser.ast.Paragraph
 import com.hrm.markdown.renderer.DefaultMarkdownImage
 import com.hrm.markdown.renderer.LocalImageRenderer
 import com.hrm.markdown.renderer.LocalMarkdownTheme
-import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.MarkdownImageData
-import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
+import com.hrm.markdown.renderer.inline.InlineLayoutBlockText
 import com.hrm.markdown.renderer.inline.inlineNodesRevision
-import com.hrm.markdown.renderer.inline.rememberInlineContent
 import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityMix
@@ -80,17 +78,8 @@ internal fun RenderParagraphBlockModel(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
-    val inlineResult = rememberInlineContent(
+    InlineLayoutBlockText(
         model = inlineModel,
-        onLinkClick = onLinkClick,
-        hostTextStyle = theme.bodyStyle,
-    )
-    InlinePaintPayloadText(
-        annotated = inlineResult.annotated,
-        paintPayloads = inlineResult.paintPayloads,
-        flowInput = inlineResult.flowInput,
-        inlineModel = inlineModel,
         modifier = modifier.fillMaxWidth(),
         style = theme.bodyStyle,
     )
@@ -119,7 +108,6 @@ internal fun RenderMixedParagraphBlockModel(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
     val customRenderer = LocalImageRenderer.current
 
     val segments = remember(inlineModel.identity.contentRevision) {
@@ -130,17 +118,9 @@ internal fun RenderMixedParagraphBlockModel(
         for (segment in segments) {
             when (segment) {
                 is ParagraphSegment.TextRun -> {
-                    val inlineResult = rememberInlineContent(
-                        model = segment.model,
-                        onLinkClick = onLinkClick,
-                        hostTextStyle = theme.bodyStyle,
-                    )
-                    if (inlineResult.annotated.isNotEmpty()) {
-                        InlinePaintPayloadText(
-                            annotated = inlineResult.annotated,
-                            paintPayloads = inlineResult.paintPayloads,
-                            flowInput = inlineResult.flowInput,
-                            inlineModel = segment.model,
+                    if (segment.model.atoms.isNotEmpty()) {
+                        InlineLayoutBlockText(
+                            model = segment.model,
                             modifier = Modifier.fillMaxWidth(),
                             style = theme.bodyStyle,
                         )

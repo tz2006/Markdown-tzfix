@@ -3,6 +3,7 @@ package com.hrm.markdown.renderer.block
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -10,9 +11,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import com.hrm.diagram.render.Diagram
 import com.hrm.diagram.render.compose.DiagramPresentationMode
 import com.hrm.diagram.render.compose.DiagramView
+import com.hrm.markdown.renderer.LocalDiagramStreamingStabilizer
+import com.hrm.markdown.renderer.LocalIsStreaming
 import com.hrm.markdown.parser.ast.DiagramBlock
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.diagram.DiagramFallback
@@ -50,6 +55,9 @@ internal fun RenderDiagramBlockWidgetModel(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
+    val isStreaming = LocalIsStreaming.current
+    val streamingStabilizer = LocalDiagramStreamingStabilizer.current
+    val density = LocalDensity.current
     val diagramBackground = Color(theme.diagramTheme.colors.canvas.argb)
     val code = model.code.trimEnd('\n')
     val diagramType = model.diagramType.lowercase()
@@ -64,6 +72,16 @@ internal fun RenderDiagramBlockWidgetModel(
             if (it.isLowerCase()) it.titlecase() else it.toString()
         }
     }
+    val blockStableId = model.identity.stableId
+    val shouldRenderDiagram = streamingStabilizer.shouldRenderDiagram(
+        blockStableId = blockStableId,
+        detectedDiagram = detection.shouldRouteToDiagram,
+        isStreaming = isStreaming,
+    )
+    val minHeightPx = streamingStabilizer.minHeightPx(
+        blockStableId = blockStableId,
+        isStreaming = isStreaming,
+    )
 
     Column(
         modifier = modifier
@@ -72,11 +90,20 @@ internal fun RenderDiagramBlockWidgetModel(
             .background(diagramBackground)
             .padding(theme.codeBlockPadding),
     ) {
-        if (code.isNotBlank() && detection.shouldRouteToDiagram) {
+        if (code.isNotBlank() && shouldRenderDiagram) {
             DiagramView(
                 source = code,
                 theme = theme.diagramTheme,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = with(density) { minHeightPx.toDp() })
+                    .onSizeChanged { size ->
+                        streamingStabilizer.observeHeight(
+                            blockStableId = blockStableId,
+                            heightPx = size.height.toFloat(),
+                            isStreaming = isStreaming,
+                        )
+                    },
                 zoomEnabled = false,
                 presentationMode = DiagramPresentationMode.Embedded,
             )

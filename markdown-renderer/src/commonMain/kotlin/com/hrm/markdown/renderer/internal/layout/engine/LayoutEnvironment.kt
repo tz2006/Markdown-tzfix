@@ -3,6 +3,7 @@ package com.hrm.markdown.renderer.internal.layout.engine
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import com.hrm.codehigh.theme.CodeTheme
+import com.hrm.latex.renderer.measure.LatexMeasurerState
 import com.hrm.markdown.renderer.MarkdownTheme
 import com.hrm.markdown.renderer.internal.core.compile.RenderCompileEnvironment
 
@@ -13,5 +14,6 @@ data class LayoutEnvironment(
     val codeTheme: CodeTheme? = null,
     val density: Density,
     val textMeasurer: TextMeasurer,
+    val latexMeasurer: LatexMeasurerState,
     val compileEnvironment: RenderCompileEnvironment,
 )

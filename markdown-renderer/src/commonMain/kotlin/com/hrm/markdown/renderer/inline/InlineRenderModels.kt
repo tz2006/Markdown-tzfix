@@ -2,7 +2,6 @@ package com.hrm.markdown.renderer.inline
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.TextUnit
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.model.InlineWidgetModel
 import com.hrm.markdown.renderer.internal.layout.inline.InlineFlowInput
@@ -46,16 +45,16 @@ internal data class InlineRenderResult(
 
 internal fun inlineWidgetPaintPayload(
     alternateText: String,
-    width: TextUnit,
-    height: TextUnit,
+    widthPx: Float,
+    heightPx: Float,
     content: @Composable () -> Unit,
 ): InlineWidgetPaintPayload {
     return InlineWidgetPaintPayload(
         alternateText = alternateText,
         placeholder = InlinePlaceholderLayoutSpec(
             alternateText = alternateText,
-            width = width,
-            height = height,
+            widthPx = widthPx,
+            heightPx = heightPx,
         ),
         content = content,
     )

@@ -33,8 +33,7 @@ import com.hrm.markdown.renderer.LocalFootnoteNavigationState
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnFootnoteBackClick
 import com.hrm.markdown.renderer.MarkdownBlockChildren
-import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
-import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.inline.InlineLayoutBlockText
 import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionDescriptionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionListBlockModel
@@ -101,15 +100,8 @@ internal fun DefinitionListRenderer(
             when (child) {
                 is DefinitionTerm -> {
                     val inlineModel = rememberInlineModel(child)
-                    val inlineResult = rememberInlineContent(
+                    InlineLayoutBlockText(
                         model = inlineModel,
-                        hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
-                    )
-                    InlinePaintPayloadText(
-                        annotated = inlineResult.annotated,
-                        paintPayloads = inlineResult.paintPayloads,
-                        flowInput = inlineResult.flowInput,
-                        inlineModel = inlineModel,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                 }
@@ -141,21 +133,17 @@ internal fun RenderDefinitionListBlockModel(
         for (item in model.items) {
             when (item) {
                 is DefinitionTermBlockModel -> {
-                    val inlineResult = rememberInlineContent(
+                    InlineLayoutBlockText(
                         model = item.inline,
-                        hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
-                    )
-                    InlinePaintPayloadText(
-                        annotated = inlineResult.annotated,
-                        paintPayloads = inlineResult.paintPayloads,
-                        flowInput = inlineResult.flowInput,
-                        inlineModel = item.inline,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                 }
 
                 is DefinitionDescriptionBlockModel -> {
-                    Box(modifier = Modifier.padding(start = 24.dp)) {
+                    Column(
+                        modifier = Modifier.padding(start = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
+                    ) {
                         renderChildren(item.children)
                     }
                 }
@@ -178,21 +166,17 @@ internal fun RenderDefinitionListLayoutBlockModel(
         for (item in model.items) {
             when (item) {
                 is LayoutDefinitionTermGroup -> {
-                    val inlineResult = rememberInlineContent(
+                    InlineLayoutBlockText(
                         model = item.item.inline,
-                        hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
-                    )
-                    InlinePaintPayloadText(
-                        annotated = inlineResult.annotated,
-                        paintPayloads = inlineResult.paintPayloads,
-                        flowInput = inlineResult.flowInput,
-                        inlineModel = item.item.inline,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                 }
 
                 is LayoutDefinitionDescriptionGroup -> {
-                    Box(modifier = Modifier.padding(start = 24.dp)) {
+                    Column(
+                        modifier = Modifier.padding(start = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(theme.blockSpacing),
+                    ) {
                         renderChildren(item.children)
                     }
                 }

@@ -13,10 +13,8 @@ import com.hrm.markdown.parser.ast.Node
 import com.hrm.markdown.parser.ast.SetextHeading
 import com.hrm.markdown.renderer.LocalMarkdownConfig
 import com.hrm.markdown.renderer.LocalMarkdownTheme
-import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.LocalRendererDocument
-import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
-import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.inline.InlineLayoutBlockText
 import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromText
@@ -83,23 +81,14 @@ internal fun RenderHeadingBlockModel(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalMarkdownTheme.current
-    val onLinkClick = LocalOnLinkClick.current
     val style = theme.headingStyles[level.coerceIn(0, theme.headingStyles.lastIndex)]
     val finalModel = remember(inlineModel, numbering) {
         inlineModel.prependHeadingNumbering(numbering)
     }
-    val inlineResult = rememberInlineContent(
-        model = finalModel,
-        onLinkClick = onLinkClick,
-        hostTextStyle = style,
-    )
 
     Column(modifier = modifier.fillMaxWidth()) {
-        InlinePaintPayloadText(
-            annotated = inlineResult.annotated,
-            paintPayloads = inlineResult.paintPayloads,
-            flowInput = inlineResult.flowInput,
-            inlineModel = finalModel,
+        InlineLayoutBlockText(
+            model = finalModel,
             style = style,
         )
 

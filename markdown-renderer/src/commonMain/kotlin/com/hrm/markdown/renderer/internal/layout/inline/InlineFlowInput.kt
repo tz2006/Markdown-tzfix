@@ -1,7 +1,6 @@
 package com.hrm.markdown.renderer.internal.layout.inline
 
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.TextUnit
 import com.hrm.markdown.renderer.inline.InlinePlaceholderId
 
 internal data class InlineFlowInput(
@@ -10,8 +9,8 @@ internal data class InlineFlowInput(
 
 internal data class InlinePlaceholderLayoutSpec(
     val alternateText: String,
-    val width: TextUnit,
-    val height: TextUnit,
+    val widthPx: Float,
+    val heightPx: Float,
 )
 
 internal sealed interface InlineFlowSegment {

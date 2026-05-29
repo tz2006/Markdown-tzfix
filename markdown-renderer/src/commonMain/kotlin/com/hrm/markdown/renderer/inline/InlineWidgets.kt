@@ -28,13 +28,12 @@ internal fun SpoilerContent(
     model: InlineModel,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
-    context: InlineRenderBuildContext,
     directiveRegistry: MarkdownDirectiveRegistry,
     onLinkClick: ((String) -> Unit)?,
     onFootnoteClick: ((String) -> Unit)?,
-    latexMeasurer: LatexMeasurerState?,
-    density: Density?,
-    textMeasurer: TextMeasurer?,
+    latexMeasurer: LatexMeasurerState,
+    density: Density,
+    textMeasurer: TextMeasurer,
     inlineCodeTheme: CodeTheme?,
 ) {
     var revealed by remember(model.identity.stableId) { mutableStateOf(false) }
@@ -63,11 +62,10 @@ internal fun SpoilerContent(
         textMeasurer,
         inlineCodeTheme,
     ) {
-        val content = buildInlineAnnotatedStringFromModel(
+        val content = buildInlineRenderResultFromModel(
             model = model,
             theme = theme,
             hostTextStyle = hostTextStyle,
-            paintPayloads = context.paintPayloads,
             directiveRegistry = directiveRegistry,
             onLinkClick = stableOnLinkClick,
             onFootnoteClick = stableOnFootnoteClick,
@@ -75,7 +73,7 @@ internal fun SpoilerContent(
             density = density,
             textMeasurer = textMeasurer,
             codeTheme = inlineCodeTheme,
-        )
+        ).annotated
         if (revealed) {
             buildAnnotatedString {
                 withStyle(SpanStyle(background = theme.spoilerColor)) {
