@@ -3,7 +3,7 @@ package com.hrm.markdown.renderer.internal.layout.engine
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.hrm.markdown.parser.ast.Table
-import com.hrm.markdown.renderer.inline.buildInlineContentResultFromModel
+import com.hrm.markdown.renderer.inline.buildInlineFlowInputFromModel
 import com.hrm.markdown.renderer.internal.core.model.BibliographyDefinitionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionDescriptionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionListBlockModel
@@ -29,7 +29,7 @@ internal fun LayoutEnvironment.measureInlineBlock(
     widthPx: Float,
 ): Float {
     if (widthPx <= 0f) return 0f
-    val inline = buildInlineContentResultFromModel(
+    val flowInput = buildInlineFlowInputFromModel(
         model = model,
         theme = markdownTheme,
         hostTextStyle = style,
@@ -39,7 +39,7 @@ internal fun LayoutEnvironment.measureInlineBlock(
         codeTheme = codeTheme,
     )
     return computeInlineFlowLayout(
-        input = inline.flowInput,
+        input = flowInput,
         style = style,
         density = density,
         textMeasurer = textMeasurer,

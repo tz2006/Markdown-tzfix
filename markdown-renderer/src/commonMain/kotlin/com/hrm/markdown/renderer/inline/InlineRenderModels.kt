@@ -1,29 +1,40 @@
 package com.hrm.markdown.renderer.inline
 
-import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
-import com.hrm.markdown.renderer.internal.layout.inline.InlinePlaceholderLayoutSpec
+import androidx.compose.ui.unit.TextUnit
 import com.hrm.markdown.renderer.internal.layout.inline.InlineFlowInput
+import com.hrm.markdown.renderer.internal.layout.inline.InlinePlaceholderLayoutSpec
 
 internal const val INLINE_PLACEHOLDER_TAG = "markdown-inline-placeholder"
 internal const val INLINE_PLACEHOLDER_CHAR = '\uFFFC'
 
-internal data class InlineContentEntry(
+internal data class InlineWidgetPaintPayload(
     val alternateText: String,
-    val inlineTextContent: InlineTextContent,
+    val placeholder: InlinePlaceholderLayoutSpec,
+    val content: @Composable () -> Unit,
 )
 
 internal data class InlineContentResult(
     val annotated: AnnotatedString,
-    val inlineContents: Map<String, InlineContentEntry>,
+    val paintPayloads: Map<String, InlineWidgetPaintPayload>,
     val flowInput: InlineFlowInput,
 )
 
-internal fun InlineContentEntry.toPlaceholderLayoutSpec(): InlinePlaceholderLayoutSpec {
-    return InlinePlaceholderLayoutSpec(
+internal fun inlineWidgetPaintPayload(
+    alternateText: String,
+    width: TextUnit,
+    height: TextUnit,
+    content: @Composable () -> Unit,
+): InlineWidgetPaintPayload {
+    return InlineWidgetPaintPayload(
         alternateText = alternateText,
-        width = inlineTextContent.placeholder.width,
-        height = inlineTextContent.placeholder.height,
+        placeholder = InlinePlaceholderLayoutSpec(
+            alternateText = alternateText,
+            width = width,
+            height = height,
+        ),
+        content = content,
     )
 }
 

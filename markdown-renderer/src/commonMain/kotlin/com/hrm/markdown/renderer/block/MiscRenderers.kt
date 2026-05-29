@@ -33,7 +33,7 @@ import com.hrm.markdown.renderer.LocalFootnoteNavigationState
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnFootnoteBackClick
 import com.hrm.markdown.renderer.MarkdownBlockChildren
-import com.hrm.markdown.renderer.inline.InlineFlowText
+import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
 import com.hrm.markdown.renderer.internal.core.model.DefinitionDescriptionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionListBlockModel
@@ -103,9 +103,9 @@ internal fun DefinitionListRenderer(
                         parent = child,
                         hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
-                    InlineFlowText(
+                    InlinePaintPayloadText(
                         annotated = inlineResult.annotated,
-                        inlineContents = inlineResult.inlineContents,
+                        paintPayloads = inlineResult.paintPayloads,
                         flowInput = inlineResult.flowInput,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
@@ -142,9 +142,9 @@ internal fun RenderDefinitionListBlockModel(
                         model = item.inline,
                         hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
-                    InlineFlowText(
+                    InlinePaintPayloadText(
                         annotated = inlineResult.annotated,
-                        inlineContents = inlineResult.inlineContents,
+                        paintPayloads = inlineResult.paintPayloads,
                         flowInput = inlineResult.flowInput,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
@@ -178,9 +178,9 @@ internal fun RenderDefinitionListLayoutBlockModel(
                         model = item.item.inline,
                         hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
-                    InlineFlowText(
+                    InlinePaintPayloadText(
                         annotated = inlineResult.annotated,
-                        inlineContents = inlineResult.inlineContents,
+                        paintPayloads = inlineResult.paintPayloads,
                         flowInput = inlineResult.flowInput,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )

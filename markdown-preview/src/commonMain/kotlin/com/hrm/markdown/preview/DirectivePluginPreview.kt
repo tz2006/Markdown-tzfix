@@ -54,9 +54,9 @@ private object VideoDirectivePlugin : MarkdownDirectivePlugin {
     override val blockDirectiveRenderers: Map<String, MarkdownBlockDirectiveRenderer> = mapOf(
         "video" to { scope ->
             VideoCard(
-                title = scope.args["title"] ?: "Untitled",
-                url = scope.args["url"] ?: "",
-                poster = scope.args["poster"],
+                title = scope.directive.args["title"] ?: "Untitled",
+                url = scope.directive.args["url"] ?: "",
+                poster = scope.directive.args["poster"],
             )
         }
     )

@@ -156,9 +156,9 @@ object VideoDirectivePlugin : MarkdownDirectivePlugin {
     override val blockDirectiveRenderers = mapOf(
         "video" to { scope ->
             VideoPlayer(
-                url = scope.args.getValue("url"),
-                poster = scope.args["poster"],
-                title = scope.args["title"],
+                url = scope.directive.args.getValue("url"),
+                poster = scope.directive.args["poster"],
+                title = scope.directive.args["title"],
             )
         }
     )
@@ -182,8 +182,7 @@ class VideoSyntaxTransformer : MarkdownInputTransformer {
 ```
 
 `DirectiveBlockRenderScope` 和 `DirectiveInlineRenderScope` 现在基于 snapshot。
-当你需要读取结构化 directive 数据时，请使用 `scope.directive`；
-`scope.tagName`、`scope.args`、`scope.alternateText` 仍保留为便捷访问入口。
+读取结构化 directive 数据时，请统一使用 `scope.directive` 作为唯一入口。
 HTML 导出侧的 `HtmlDirectiveFallback` 与 `HtmlInlineDirectiveFallback`
 也改为接收 snapshot，而不再直接暴露 parser AST 节点。
 

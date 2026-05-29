@@ -802,9 +802,9 @@ object VideoDirectivePlugin : MarkdownDirectivePlugin {
     override val blockDirectiveRenderers = mapOf(
         "video" to { scope ->
             VideoPlayer(
-                url = scope.args.getValue("url"),
-                poster = scope.args["poster"],
-                title = scope.args["title"],
+                url = scope.directive.args.getValue("url"),
+                poster = scope.directive.args["poster"],
+                title = scope.directive.args["title"],
             )
         }
     )

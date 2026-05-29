@@ -4,15 +4,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Layout
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.HorizontalDivider
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.MarkdownRenderMode
 import com.hrm.markdown.renderer.block.RenderAdmonitionBlockModel
@@ -34,11 +43,9 @@ import com.hrm.markdown.renderer.block.RenderFigureBlockModel
 import com.hrm.markdown.renderer.block.RenderFigureLayoutBlockModel
 import com.hrm.markdown.renderer.block.RenderFootnoteDefinitionBlockModel
 import com.hrm.markdown.renderer.block.RenderFootnoteLayoutBlockModel
-import com.hrm.markdown.renderer.block.RenderHeadingBlockModel
 import com.hrm.markdown.renderer.block.RenderHtmlBlockModel
 import com.hrm.markdown.renderer.block.RenderListBlockModel
 import com.hrm.markdown.renderer.block.RenderListLayoutBlockModel
-import com.hrm.markdown.renderer.block.RenderParagraphInlineModel
 import com.hrm.markdown.renderer.block.RenderTableLayoutBlockModel
 import com.hrm.markdown.renderer.block.RenderTableBlockModel
 import com.hrm.markdown.renderer.block.RenderTabBlockModel
@@ -79,10 +86,13 @@ import com.hrm.markdown.renderer.internal.layout.model.LayoutDefinitionListBlock
 import com.hrm.markdown.renderer.internal.layout.model.LayoutBibliographyBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutFigureBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutFootnoteBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutInlineBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTableBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTocBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutListBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutRenderBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutTextRun
+import com.hrm.markdown.renderer.internal.layout.model.LayoutWidgetRun
 import com.hrm.markdown.renderer.internal.layout.model.LayoutWidgetBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutRect
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTabBlockModel
@@ -216,26 +226,13 @@ private fun PaintBlock(block: com.hrm.markdown.renderer.internal.layout.model.In
             },
         )
         is LayoutWidgetBlockModel -> PaintWidgetBlock(block)
-        else -> Unit
+        is LayoutInlineBlockModel -> PaintInlineBlock(block)
     }
 }
 
 @Composable
 private fun PaintRenderBlock(block: LayoutRenderBlockModel) {
     when (val renderBlock = block.block) {
-        is ParagraphBlockModel -> RenderParagraphInlineModel(
-            inlineModel = renderBlock.inline,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        is HeadingBlockModel -> RenderHeadingBlockModel(
-            level = renderBlock.level - 1,
-            numbering = renderBlock.numbering,
-            inlineModel = renderBlock.inline,
-            showDivider = renderBlock.level <= 2,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
         is CodeBlockModel -> FencedCodeBlockRenderer(
             text = renderBlock.code,
             language = renderBlock.language,
@@ -397,6 +394,101 @@ private fun PaintRenderBlock(block: LayoutRenderBlockModel) {
         }
 
         is FallbackLeafBlockModel -> Unit
+        is ParagraphBlockModel,
+        is HeadingBlockModel -> Unit
+    }
+}
+
+@Composable
+private fun PaintInlineBlock(block: LayoutInlineBlockModel) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        PaintInlineLayoutContent(block = block, modifier = Modifier.fillMaxWidth())
+        if (block.showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 4.dp),
+                thickness = LocalMarkdownTheme.current.dividerThickness,
+                color = LocalMarkdownTheme.current.dividerColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaintInlineLayoutContent(
+    block: LayoutInlineBlockModel,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    Layout(
+        modifier = modifier,
+        content = {
+            for (line in block.lines) {
+                for (run in line.runs) {
+                    when (run) {
+                        is LayoutTextRun -> key(run.identity.stableId) {
+                            BasicText(
+                                text = run.text,
+                                style = block.style,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
+
+                        is LayoutWidgetRun -> key(run.identity.stableId) {
+                            val payload = block.inlinePayloads[run.id]
+                            Box(
+                                modifier = Modifier.size(
+                                    width = with(density) { run.frame.width.toDp() },
+                                    height = with(density) { run.frame.height.toDp() },
+                                )
+                            ) {
+                                payload?.content?.invoke()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ) { measurables, constraints ->
+        val placeables = ArrayList<Placeable>(measurables.size)
+        var measurableIndex = 0
+        for (line in block.lines) {
+            for (run in line.runs) {
+                val measurable = measurables[measurableIndex++]
+                val width = run.frame.width.toInt().coerceAtLeast(0)
+                val height = run.frame.height.toInt().coerceAtLeast(0)
+                placeables += measurable.measure(
+                    if (width == 0 || height == 0) {
+                        Constraints.fixed(0, 0)
+                    } else {
+                        Constraints.fixed(width, height)
+                    }
+                )
+            }
+        }
+
+        val desiredWidth = if (constraints.hasBoundedWidth) {
+            constraints.maxWidth
+        } else {
+            block.frame.width.toInt().coerceAtLeast(constraints.minWidth)
+        }
+        val desiredHeight = block.contentFrame.height.toInt()
+            .coerceAtLeast(constraints.minHeight)
+            .let { height ->
+                if (constraints.hasBoundedHeight) height.coerceAtMost(constraints.maxHeight) else height
+            }
+
+        layout(desiredWidth, desiredHeight) {
+            var placeableIndex = 0
+            for (line in block.lines) {
+                for (run in line.runs) {
+                    val placeable = placeables[placeableIndex++]
+                    val x = (run.frame.left - block.frame.left).toInt()
+                    val y = (run.frame.top - block.frame.top).toInt()
+                    placeable.placeRelative(x, y)
+                }
+            }
+        }
     }
 }
 

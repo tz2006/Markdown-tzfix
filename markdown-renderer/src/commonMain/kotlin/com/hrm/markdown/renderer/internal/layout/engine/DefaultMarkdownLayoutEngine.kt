@@ -1,5 +1,6 @@
 package com.hrm.markdown.renderer.internal.layout.engine
 
+import androidx.compose.ui.text.AnnotatedString
 import com.hrm.markdown.renderer.internal.core.model.AdmonitionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.BibliographyDefinitionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.BlockQuoteBlockModel
@@ -17,14 +18,24 @@ import com.hrm.markdown.renderer.internal.core.model.HeadingBlockModel
 import com.hrm.markdown.renderer.internal.core.model.HtmlBlockModel
 import com.hrm.markdown.renderer.internal.core.model.InternalRenderBlockModel
 import com.hrm.markdown.renderer.internal.core.model.InternalRenderDocumentModel
+import com.hrm.markdown.renderer.internal.core.model.InlineAtom
+import com.hrm.markdown.renderer.internal.core.model.InlineModel
 import com.hrm.markdown.renderer.internal.core.model.ListBlockModel
 import com.hrm.markdown.renderer.internal.core.model.MathBlockModel
 import com.hrm.markdown.renderer.internal.core.model.PageBreakBlockModel
 import com.hrm.markdown.renderer.internal.core.model.ParagraphBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TabBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableBlockModel
+import com.hrm.markdown.renderer.internal.core.model.TextAtom
 import com.hrm.markdown.renderer.internal.core.model.ThematicBreakBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TocBlockModel
+import com.hrm.markdown.renderer.internal.core.model.WidgetAtom
+import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
+import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromText
+import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromValues
+import com.hrm.markdown.renderer.inline.buildInlineContentResultFromModel
+import com.hrm.markdown.renderer.internal.layout.inline.LineItem
+import com.hrm.markdown.renderer.internal.layout.inline.computeInlineFlowLayout
 import com.hrm.markdown.renderer.internal.layout.model.BlockWidgetMeasurement
 import com.hrm.markdown.renderer.internal.layout.model.InternalLayoutBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.InternalLayoutDocumentMetadata
@@ -36,6 +47,8 @@ import com.hrm.markdown.renderer.internal.layout.model.LayoutDefinitionListBlock
 import com.hrm.markdown.renderer.internal.layout.model.LayoutDefinitionTermGroup
 import com.hrm.markdown.renderer.internal.layout.model.LayoutFigureBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutFootnoteBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutInlineBlockModel
+import com.hrm.markdown.renderer.internal.layout.model.LayoutInlineLine
 import com.hrm.markdown.renderer.internal.layout.model.LayoutInsets
 import com.hrm.markdown.renderer.internal.layout.model.LayoutBibliographyBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutBibliographyEntryGroup
@@ -49,8 +62,10 @@ import com.hrm.markdown.renderer.internal.layout.model.LayoutTableCellGroup
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTableRowGroup
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTabBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTabGroup
+import com.hrm.markdown.renderer.internal.layout.model.LayoutTextRun
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTocBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.LayoutTocEntryGroup
+import com.hrm.markdown.renderer.internal.layout.model.LayoutWidgetRun
 import com.hrm.markdown.renderer.internal.layout.model.LayoutWidgetBlockModel
 import com.hrm.markdown.renderer.internal.layout.widget.measureBlockWidget
 import kotlin.math.max
@@ -273,6 +288,30 @@ private fun layoutBlock(
         is FigureBlockModel -> layoutFigureBlock(block, left, top, width, insets, environment)
         is TocBlockModel -> layoutTocBlock(block, left, top, width, insets, environment)
         is BibliographyDefinitionBlockModel -> layoutBibliographyBlock(block, left, top, width, insets, environment)
+        is ParagraphBlockModel -> layoutInlineBlock(
+            identity = block.identity,
+            model = block.inline,
+            style = environment.markdownTheme.bodyStyle,
+            left = left,
+            top = top,
+            width = width,
+            insets = insets,
+            environment = environment,
+        )
+        is HeadingBlockModel -> {
+            val style = environment.markdownTheme.headingStyles[(block.level - 1).coerceIn(0, environment.markdownTheme.headingStyles.lastIndex)]
+            layoutInlineBlock(
+                identity = block.identity,
+                model = block.inline.prependHeadingNumbering(block.numbering),
+                style = style,
+                left = left,
+                top = top,
+                width = width,
+                insets = insets,
+                environment = environment,
+                showDivider = block.level <= 2,
+            )
+        }
 
         else -> {
             val contentHeight = environment.measureLeafBlockContentHeight(block, contentWidth)
@@ -331,6 +370,113 @@ private fun layoutFootnoteBlock(
         block = block,
         leadChild = leadChild,
         trailingChildren = trailingChildren,
+    )
+}
+
+private fun layoutInlineBlock(
+    identity: RenderIdentity,
+    model: InlineModel,
+    style: androidx.compose.ui.text.TextStyle,
+    left: Float,
+    top: Float,
+    width: Float,
+    insets: LayoutInsets,
+    environment: LayoutEnvironment,
+    showDivider: Boolean = false,
+): LayoutInlineBlockModel {
+    val contentLeft = left + insets.left
+    val contentTop = top + insets.top
+    val contentWidth = (width - insets.left - insets.right).coerceAtLeast(0f)
+    val inlineResult = buildInlineContentResultFromModel(
+        model = model,
+        theme = environment.markdownTheme,
+        hostTextStyle = style,
+        directiveRegistry = environment.compileEnvironment.directiveRegistry,
+        density = environment.density,
+        textMeasurer = environment.textMeasurer,
+        codeTheme = environment.codeTheme,
+    )
+    val layout = computeInlineFlowLayout(
+        input = inlineResult.flowInput,
+        style = style,
+        density = environment.density,
+        textMeasurer = environment.textMeasurer,
+        maxWidthPx = contentWidth,
+        maxLines = Int.MAX_VALUE,
+    )
+    val widgetById = model.atoms.asSequence()
+        .mapNotNull { atom -> (atom as? WidgetAtom)?.widget }
+        .associateBy { com.hrm.markdown.renderer.inline.modelInlinePlaceholderId(it) }
+    val lines = layout.lines.mapIndexed { index, line ->
+        var cursorX = contentLeft
+        val lineTop = contentTop + layout.lines.take(index).sumOf { it.lineHeightPx.toDouble() }.toFloat()
+        val runs = line.items.map { item ->
+            when (item) {
+                is LineItem.TextItem -> {
+                    val run = LayoutTextRun(
+                        identity = RenderIdentity(
+                            stableId = renderIdentityFromText(item.text.text, identity.stableId + cursorX.toLong()),
+                            contentRevision = identity.contentRevision,
+                            layoutRevision = identity.layoutRevision,
+                            paintRevision = identity.paintRevision,
+                        ),
+                        frame = LayoutRect(cursorX, lineTop, item.widthPx, item.heightPx),
+                        text = item.text,
+                    )
+                    cursorX += item.widthPx
+                    run
+                }
+                is LineItem.InlineItem -> {
+                    val widget = widgetById[item.id]
+                    val run = LayoutWidgetRun(
+                        identity = widget?.identity ?: identity,
+                        frame = LayoutRect(cursorX, lineTop, item.widthPx, item.heightPx),
+                        id = item.id,
+                        widget = widget ?: throw IllegalStateException("Missing inline widget for placeholder ${item.id}"),
+                        alternateText = item.alternateText,
+                    )
+                    cursorX += item.widthPx
+                    run
+                }
+            }
+        }
+        LayoutInlineLine(
+            frame = LayoutRect(contentLeft, lineTop, line.lineWidthPx, line.lineHeightPx),
+            baseline = line.baselinePx,
+            runs = runs,
+        )
+    }
+    val dividerHeight = if (showDivider) 4f + with(environment.density) { environment.markdownTheme.dividerThickness.toPx() } else 0f
+    val contentHeight = layout.heightPx + dividerHeight
+    return LayoutInlineBlockModel(
+        identity = identity,
+        frame = LayoutRect(left, top, width, insets.top + contentHeight + insets.bottom),
+        contentFrame = LayoutRect(contentLeft, contentTop, contentWidth, contentHeight),
+        style = style,
+        inlinePayloads = inlineResult.paintPayloads,
+        showDivider = showDivider,
+        lines = lines,
+    )
+}
+
+private fun InlineModel.prependHeadingNumbering(numbering: String?): InlineModel {
+    if (numbering.isNullOrBlank()) return this
+    val prefix = "$numbering "
+    val prefixStableId = renderIdentityFromText(prefix, identity.stableId)
+    val prefixIdentity = RenderIdentity(
+        stableId = prefixStableId,
+        contentRevision = renderIdentityFromValues(identity.contentRevision, prefixStableId),
+        layoutRevision = renderIdentityFromValues(identity.layoutRevision, prefixStableId),
+        paintRevision = identity.paintRevision,
+    )
+    return copy(
+        identity = RenderIdentity(
+            stableId = identity.stableId,
+            contentRevision = renderIdentityFromValues(identity.contentRevision, prefixIdentity.contentRevision),
+            layoutRevision = renderIdentityFromValues(identity.layoutRevision, prefixIdentity.layoutRevision),
+            paintRevision = identity.paintRevision,
+        ),
+        atoms = listOf(TextAtom(identity = prefixIdentity, text = prefix)) + atoms,
     )
 }
 

@@ -11,7 +11,6 @@ class DirectiveScopeAdaptersTest {
             args = mapOf("url" to "https://example.com/demo.mp4"),
         )
 
-        assertEquals("video", scope.tagName)
         assertEquals("video", scope.directive.tagName)
         assertEquals("https://example.com/demo.mp4", scope.directive.args["url"])
     }
@@ -24,9 +23,8 @@ class DirectiveScopeAdaptersTest {
             alternateText = "beta",
         )
 
-        assertEquals("badge", scope.tagName)
         assertEquals("badge", scope.directive.tagName)
         assertEquals("beta", scope.directive.args["text"])
-        assertEquals("beta", scope.alternateText)
+        assertEquals("beta", scope.directive.alternateText)
     }
 }

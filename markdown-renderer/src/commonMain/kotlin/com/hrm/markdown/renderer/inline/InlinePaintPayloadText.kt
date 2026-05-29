@@ -10,11 +10,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.FirstBaseline
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -28,23 +29,16 @@ import com.hrm.markdown.renderer.internal.layout.inline.computeMaxIntrinsicWidth
 import com.hrm.markdown.renderer.internal.layout.inline.computeMinIntrinsicWidthPx
 import kotlin.math.roundToInt
 
-/**
- * Cross-platform workaround for inline content line height issues.
- *
- * The actual line layout still uses a BoxWithConstraints-driven implementation,
- * but we wrap it in a regular Layout that provides intrinsic measurements.
- * This avoids crashes when parents such as tables ask for intrinsic sizes.
- */
 @Composable
-internal fun InlineFlowText(
+internal fun InlinePaintPayloadText(
     annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    paintPayloads: Map<String, InlineWidgetPaintPayload>,
     flowInput: InlineFlowInput,
     style: TextStyle,
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
 ) {
-    if (inlineContents.isEmpty()) {
+    if (paintPayloads.isEmpty()) {
         BasicText(
             text = annotated,
             modifier = modifier,
@@ -57,7 +51,7 @@ internal fun InlineFlowText(
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
     val measurePolicy = remember(flowInput, style, density, textMeasurer, maxLines) {
-        inlineFlowMeasurePolicy(
+        inlinePaintPayloadMeasurePolicy(
             input = flowInput,
             style = style,
             density = density,
@@ -69,9 +63,9 @@ internal fun InlineFlowText(
     Layout(
         modifier = modifier,
         content = {
-            InlineFlowMeasuredContent(
+            InlinePaintPayloadMeasuredContent(
                 annotated = annotated,
-                inlineContents = inlineContents,
+                paintPayloads = paintPayloads,
                 input = flowInput,
                 style = style,
                 density = density,
@@ -84,13 +78,13 @@ internal fun InlineFlowText(
 }
 
 @Composable
-private fun InlineFlowMeasuredContent(
+private fun InlinePaintPayloadMeasuredContent(
     annotated: AnnotatedString,
-    inlineContents: Map<String, InlineContentEntry>,
+    paintPayloads: Map<String, InlineWidgetPaintPayload>,
     input: InlineFlowInput,
     style: TextStyle,
     density: Density,
-    textMeasurer: androidx.compose.ui.text.TextMeasurer,
+    textMeasurer: TextMeasurer,
     maxLines: Int,
 ) {
     BoxWithConstraints {
@@ -121,12 +115,12 @@ private fun InlineFlowMeasuredContent(
                             }
 
                             is LineItem.InlineItem -> {
-                                val wDp = with(density) { item.widthPx.toDp() }
-                                val hDp = with(density) { item.heightPx.toDp() }
-                                val entry = inlineContents[item.id]
+                                val widthDp = with(density) { item.widthPx.toDp() }
+                                val heightDp = with(density) { item.heightPx.toDp() }
+                                val payload = paintPayloads[item.id]
                                 key(item.id) {
-                                    Box(modifier = Modifier.size(wDp, hDp)) {
-                                        entry?.inlineTextContent?.children(item.alternateText)
+                                    Box(modifier = Modifier.size(widthDp, heightDp)) {
+                                        payload?.content?.invoke()
                                     }
                                 }
                             }
@@ -136,21 +130,20 @@ private fun InlineFlowMeasuredContent(
             },
         ) { measurables, constraints ->
             val placeables = ArrayList<androidx.compose.ui.layout.Placeable>(measurables.size)
-            var idx = 0
+            var index = 0
             for (line in flowLayout.lines) {
                 for (item in line.items) {
-                    val measurable = measurables[idx++]
-                    val w = item.widthPx.roundToInt().coerceAtLeast(0)
-                    val h = item.heightPx.roundToInt().coerceAtLeast(0)
+                    val measurable = measurables[index++]
+                    val width = item.widthPx.roundToInt().coerceAtLeast(0)
+                    val height = item.heightPx.roundToInt().coerceAtLeast(0)
                     placeables += measurable.measure(
-                        if (w == 0 || h == 0) Constraints.fixed(0, 0) else Constraints.fixed(w, h)
+                        if (width == 0 || height == 0) Constraints.fixed(0, 0) else Constraints.fixed(width, height)
                     )
                 }
             }
 
             val width = flowLayout.widthPx.roundToInt().coerceIn(constraints.minWidth, constraints.maxWidth)
             val height = flowLayout.heightPx.roundToInt().coerceIn(constraints.minHeight, constraints.maxHeight)
-
             val alignmentLines = mutableMapOf<AlignmentLine, Int>().apply {
                 flowLayout.firstBaselinePx?.let { put(FirstBaseline, it.roundToInt()) }
                 flowLayout.lastBaselinePx?.let { put(LastBaseline, it.roundToInt()) }
@@ -158,34 +151,32 @@ private fun InlineFlowMeasuredContent(
 
             layout(width, height, alignmentLines = alignmentLines) {
                 var y = 0f
-                var pIndex = 0
+                var placeableIndex = 0
                 for (line in flowLayout.lines) {
-                    val lineHeight = line.lineHeightPx
                     val lineStartX = when (line.textAlign) {
                         TextAlign.Center -> ((maxWidthPx - line.lineWidthPx) / 2f).coerceAtLeast(0f)
                         TextAlign.End, TextAlign.Right -> (maxWidthPx - line.lineWidthPx).coerceAtLeast(0f)
                         else -> 0f
                     }
-
                     var x = lineStartX
                     for (item in line.items) {
-                        val placeable = placeables[pIndex++]
-                        val itemY = y + ((lineHeight - item.heightPx) / 2f).coerceAtLeast(0f)
+                        val placeable = placeables[placeableIndex++]
+                        val itemY = y + ((line.lineHeightPx - item.heightPx) / 2f).coerceAtLeast(0f)
                         placeable.placeRelative(x.roundToInt(), itemY.roundToInt())
                         x += item.widthPx
                     }
-                    y += lineHeight
+                    y += line.lineHeightPx
                 }
             }
         }
     }
 }
 
-private fun inlineFlowMeasurePolicy(
+private fun inlinePaintPayloadMeasurePolicy(
     input: InlineFlowInput,
     style: TextStyle,
     density: Density,
-    textMeasurer: androidx.compose.ui.text.TextMeasurer,
+    textMeasurer: TextMeasurer,
     maxLines: Int,
 ): MeasurePolicy = object : MeasurePolicy {
     override fun androidx.compose.ui.layout.MeasureScope.measure(

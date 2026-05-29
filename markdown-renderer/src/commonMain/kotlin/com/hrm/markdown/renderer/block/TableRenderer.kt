@@ -23,7 +23,7 @@ import com.hrm.markdown.parser.ast.TableHead
 import com.hrm.markdown.parser.ast.TableRow
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnLinkClick
-import com.hrm.markdown.renderer.inline.InlineFlowText
+import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
 import com.hrm.markdown.renderer.internal.core.model.TableBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableCellBlockModel
@@ -186,9 +186,9 @@ private fun TableCellRenderer(
         hostTextStyle = style,
     )
     Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
-        InlineFlowText(
+        InlinePaintPayloadText(
             annotated = inlineResult.annotated,
-            inlineContents = inlineResult.inlineContents,
+            paintPayloads = inlineResult.paintPayloads,
             flowInput = inlineResult.flowInput,
             style = style,
             maxLines = 1,
@@ -356,9 +356,9 @@ private fun TableBlockModelCellRenderer(
         hostTextStyle = style,
     )
     Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
-        InlineFlowText(
+        InlinePaintPayloadText(
             annotated = inlineResult.annotated,
-            inlineContents = inlineResult.inlineContents,
+            paintPayloads = inlineResult.paintPayloads,
             flowInput = inlineResult.flowInput,
             style = style,
             maxLines = 1,

@@ -48,15 +48,6 @@ internal fun MarkdownDocumentRenderer(
         document = document,
         isStreaming = isStreaming,
     )
-    val renderState = rememberMarkdownBlockRenderState(
-        document = renderDocument,
-        renderMode = renderMode,
-        enablePagination = enablePagination,
-        initialBlockCount = initialBlockCount,
-        scrollState = scrollState,
-        isStreaming = isStreaming,
-        hasHeader = header != null,
-    )
     ProvideMarkdownTheme(theme) {
         val engineHost = remember { MarkdownEngineHost() }
         val facadeState = remember(
@@ -116,6 +107,14 @@ internal fun MarkdownDocumentRenderer(
                     textMeasurer = textMeasurer,
                 )
             }
+            val renderState = rememberMarkdownBlockRenderState(
+                blocks = layoutDocument.blocks,
+                renderMode = renderMode,
+                enablePagination = enablePagination,
+                initialBlockCount = initialBlockCount,
+                scrollState = scrollState,
+                isStreaming = isStreaming,
+            )
             val navigationHandlers = rememberMarkdownNavigationHandlers(
                 renderMode = renderMode,
                 enableScroll = enableScroll,
@@ -143,7 +142,7 @@ internal fun MarkdownDocumentRenderer(
                     environment = ComposeRenderEnvironment(
                         modifier = Modifier.fillMaxWidth(),
                         renderMode = renderMode,
-                        visibleBlockCount = renderState.renderBlocks.size,
+                        visibleBlockCount = renderState.visibleBlockCount,
                         enableScroll = enableScroll,
                         scrollState = scrollState,
                         lazyListState = lazyListState,

@@ -11,7 +11,7 @@ import com.hrm.markdown.renderer.LocalImageRenderer
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.MarkdownImageData
-import com.hrm.markdown.renderer.inline.InlineFlowText
+import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
 import com.hrm.markdown.renderer.inline.inlineNodesRevision
 import com.hrm.markdown.renderer.inline.rememberInlineContent
 import com.hrm.markdown.renderer.inline.rememberInlineModel
@@ -86,9 +86,9 @@ internal fun RenderParagraphBlockModel(
         onLinkClick = onLinkClick,
         hostTextStyle = theme.bodyStyle,
     )
-    InlineFlowText(
+    InlinePaintPayloadText(
         annotated = inlineResult.annotated,
-        inlineContents = inlineResult.inlineContents,
+        paintPayloads = inlineResult.paintPayloads,
         flowInput = inlineResult.flowInput,
         modifier = modifier.fillMaxWidth(),
         style = theme.bodyStyle,
@@ -135,9 +135,9 @@ internal fun RenderMixedParagraphBlockModel(
                         hostTextStyle = theme.bodyStyle,
                     )
                     if (inlineResult.annotated.isNotEmpty()) {
-                        InlineFlowText(
+                        InlinePaintPayloadText(
                             annotated = inlineResult.annotated,
-                            inlineContents = inlineResult.inlineContents,
+                            paintPayloads = inlineResult.paintPayloads,
                             flowInput = inlineResult.flowInput,
                             modifier = Modifier.fillMaxWidth(),
                             style = theme.bodyStyle,

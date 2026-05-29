@@ -156,9 +156,9 @@ object VideoDirectivePlugin : MarkdownDirectivePlugin {
     override val blockDirectiveRenderers = mapOf(
         "video" to { scope ->
             VideoPlayer(
-                url = scope.args.getValue("url"),
-                poster = scope.args["poster"],
-                title = scope.args["title"],
+                url = scope.directive.args.getValue("url"),
+                poster = scope.directive.args["poster"],
+                title = scope.directive.args["title"],
             )
         }
     )
@@ -182,8 +182,7 @@ class VideoSyntaxTransformer : MarkdownInputTransformer {
 ```
 
 `DirectiveBlockRenderScope` and `DirectiveInlineRenderScope` are snapshot-based.
-Use `scope.directive` when you need the structured directive payload, while `scope.tagName`,
-`scope.args`, and `scope.alternateText` remain available as convenience accessors.
+Use `scope.directive` as the single structured entry point for directive data.
 For HTML export, `HtmlDirectiveFallback` and `HtmlInlineDirectiveFallback` also receive
 snapshot objects instead of parser AST nodes.
 

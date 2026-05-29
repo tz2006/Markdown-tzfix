@@ -19,10 +19,7 @@ data class DirectiveBlockSnapshot(
 data class DirectiveBlockRenderScope(
     val directive: DirectiveBlockSnapshot,
     val content: (@Composable () -> Unit)? = null,
-) {
-    val tagName: String get() = directive.tagName
-    val args: Map<String, String> get() = directive.args
-}
+)
 
 /**
  * 外部行内 directive 原生渲染器。
@@ -40,8 +37,4 @@ data class DirectiveInlineSnapshot(
  */
 data class DirectiveInlineRenderScope(
     val directive: DirectiveInlineSnapshot,
-) {
-    val tagName: String get() = directive.tagName
-    val args: Map<String, String> get() = directive.args
-    val alternateText: String get() = directive.alternateText
-}
+)

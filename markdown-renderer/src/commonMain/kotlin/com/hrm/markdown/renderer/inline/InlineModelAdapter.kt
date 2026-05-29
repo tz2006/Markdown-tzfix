@@ -1,12 +1,9 @@
 package com.hrm.markdown.renderer.inline
 
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextMeasurer
@@ -52,7 +49,7 @@ internal fun buildInlineAnnotatedStringFromModel(
     model: InlineModel,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     directiveRegistry: MarkdownDirectiveRegistry,
     onLinkClick: ((String) -> Unit)? = null,
     onFootnoteClick: ((String) -> Unit)? = null,
@@ -65,7 +62,7 @@ internal fun buildInlineAnnotatedStringFromModel(
         model = model,
         theme = theme,
         hostTextStyle = hostTextStyle,
-        inlineContents = inlineContents,
+        paintPayloads = paintPayloads,
         directiveRegistry = directiveRegistry,
         onLinkClick = onLinkClick,
         onFootnoteClick = onFootnoteClick,
@@ -89,14 +86,14 @@ internal fun buildInlineContentResultFromModel(
     textMeasurer: TextMeasurer? = null,
     codeTheme: CodeTheme? = null,
 ): InlineContentResult {
-    val inlineContents = mutableMapOf<String, InlineContentEntry>()
+    val paintPayloads = mutableMapOf<String, InlineWidgetPaintPayload>()
     val flowSegments = mutableListOf<InlineFlowSegment>()
     val annotated = buildAnnotatedString {
         renderInlineModel(
             model = model,
             theme = theme,
             hostTextStyle = hostTextStyle,
-            inlineContents = inlineContents,
+            paintPayloads = paintPayloads,
             directiveRegistry = directiveRegistry,
             onLinkClick = onLinkClick,
             onFootnoteClick = onFootnoteClick,
@@ -109,16 +106,48 @@ internal fun buildInlineContentResultFromModel(
     }
     return InlineContentResult(
         annotated = annotated,
-        inlineContents = inlineContents,
+        paintPayloads = paintPayloads,
         flowInput = InlineFlowInput(flowSegments),
     )
+}
+
+internal fun buildInlineFlowInputFromModel(
+    model: InlineModel,
+    theme: MarkdownTheme,
+    hostTextStyle: TextStyle,
+    directiveRegistry: MarkdownDirectiveRegistry,
+    onLinkClick: ((String) -> Unit)? = null,
+    onFootnoteClick: ((String) -> Unit)? = null,
+    latexMeasurer: LatexMeasurerState? = null,
+    density: Density? = null,
+    textMeasurer: TextMeasurer? = null,
+    codeTheme: CodeTheme? = null,
+): InlineFlowInput {
+    val flowSegments = mutableListOf<InlineFlowSegment>()
+    AnnotatedString.Builder().apply {
+        renderInlineModel(
+            model = model,
+            theme = theme,
+            hostTextStyle = hostTextStyle,
+            paintPayloads = mutableMapOf(),
+            directiveRegistry = directiveRegistry,
+            onLinkClick = onLinkClick,
+            onFootnoteClick = onFootnoteClick,
+            latexMeasurer = latexMeasurer,
+            density = density,
+            textMeasurer = textMeasurer,
+            inlineCodeTheme = codeTheme,
+            flowSegments = flowSegments,
+        )
+    }
+    return InlineFlowInput(flowSegments)
 }
 
 internal fun AnnotatedString.Builder.renderInlineModel(
     model: InlineModel,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     directiveRegistry: MarkdownDirectiveRegistry,
     onLinkClick: ((String) -> Unit)?,
     onFootnoteClick: ((String) -> Unit)?,
@@ -142,7 +171,7 @@ internal fun AnnotatedString.Builder.renderInlineModel(
                 atom = atom,
                 theme = theme,
                 hostTextStyle = hostTextStyle,
-                inlineContents = inlineContents,
+                paintPayloads = paintPayloads,
                 directiveRegistry = directiveRegistry,
                 onLinkClick = onLinkClick,
                 onFootnoteClick = onFootnoteClick,
@@ -308,7 +337,7 @@ private fun AnnotatedString.Builder.renderWidgetAtom(
     atom: WidgetAtom,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     directiveRegistry: MarkdownDirectiveRegistry,
     onLinkClick: ((String) -> Unit)?,
     onFootnoteClick: ((String) -> Unit)?,
@@ -319,14 +348,14 @@ private fun AnnotatedString.Builder.renderWidgetAtom(
     flowSegments: MutableList<InlineFlowSegment>? = null,
 ) {
     when (val widget = atom.widget) {
-        is InlineCodeWidgetModel -> renderInlineCodeWidget(widget, theme, inlineContents, density, textMeasurer, inlineCodeTheme, flowSegments)
-        is ImageWidgetModel -> renderImageWidget(widget, inlineContents, flowSegments)
-        is InlineMathWidgetModel -> renderInlineMathWidget(widget, theme, hostTextStyle, inlineContents, latexMeasurer, density, textMeasurer, flowSegments)
+        is InlineCodeWidgetModel -> renderInlineCodeWidget(widget, theme, paintPayloads, density, textMeasurer, inlineCodeTheme, flowSegments)
+        is ImageWidgetModel -> renderImageWidget(widget, paintPayloads, flowSegments)
+        is InlineMathWidgetModel -> renderInlineMathWidget(widget, theme, hostTextStyle, paintPayloads, latexMeasurer, density, textMeasurer, flowSegments)
         is SpoilerWidgetModel -> renderSpoilerWidget(
             widget = widget,
             theme = theme,
             hostTextStyle = hostTextStyle,
-            inlineContents = inlineContents,
+            paintPayloads = paintPayloads,
             directiveRegistry = directiveRegistry,
             onLinkClick = onLinkClick,
             onFootnoteClick = onFootnoteClick,
@@ -337,8 +366,8 @@ private fun AnnotatedString.Builder.renderWidgetAtom(
             flowSegments = flowSegments,
         )
 
-        is DirectiveInlineWidgetModel -> renderDirectiveInlineWidget(widget, theme, inlineContents, directiveRegistry, flowSegments)
-        is RubyTextWidgetModel -> renderRubyTextWidget(widget, theme, inlineContents, flowSegments)
+        is DirectiveInlineWidgetModel -> renderDirectiveInlineWidget(widget, theme, paintPayloads, directiveRegistry, flowSegments)
+        is RubyTextWidgetModel -> renderRubyTextWidget(widget, theme, paintPayloads, flowSegments)
     }
 }
 
@@ -352,7 +381,7 @@ private fun MutableList<InlineFlowSegment>.appendInlineSegment(
 private fun AnnotatedString.Builder.renderInlineCodeWidget(
     widget: InlineCodeWidgetModel,
     theme: MarkdownTheme,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     density: Density?,
     textMeasurer: TextMeasurer?,
     inlineCodeTheme: CodeTheme?,
@@ -368,20 +397,15 @@ private fun AnnotatedString.Builder.renderInlineCodeWidget(
         )
         val id = modelInlinePlaceholderId(widget)
         appendInlinePlaceholder(id)
-        val entry = InlineContentEntry(
+        val payload = inlineWidgetPaintPayload(
             alternateText = widget.code,
-            inlineTextContent = InlineTextContent(
-                placeholder = Placeholder(
-                    width = with(density) { ceil(size.width).toSp() },
-                    height = with(density) { size.height.toSp() },
-                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-                ),
-            ) {
+            width = with(density) { ceil(size.width).toSp() },
+            height = with(density) { size.height.toSp() },
+        ) {
                 CodeHighInlineCode(text = widget.code, style = inlineCodeStyle)
             }
-        )
-        inlineContents[id] = entry
-        flowSegments?.appendInlineSegment(id, entry.toPlaceholderLayoutSpec())
+        paintPayloads[id] = payload
+        flowSegments?.appendInlineSegment(id, payload.placeholder)
     } else {
         appendStyledTextSegment(widget.code, theme.inlineCodeStyle, flowSegments)
     }
@@ -389,20 +413,16 @@ private fun AnnotatedString.Builder.renderInlineCodeWidget(
 
 private fun AnnotatedString.Builder.renderImageWidget(
     widget: ImageWidgetModel,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     flowSegments: MutableList<InlineFlowSegment>?,
 ) {
     val id = modelInlinePlaceholderId(widget)
     appendInlinePlaceholder(id)
-    val entry = InlineContentEntry(
+    val payload = inlineWidgetPaintPayload(
         alternateText = widget.title ?: widget.altText.ifEmpty { widget.url },
-        inlineTextContent = InlineTextContent(
-            placeholder = Placeholder(
-                width = (widget.width?.toFloat() ?: 200f).sp,
-                height = (widget.height?.toFloat() ?: 150f).sp,
-                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-            ),
-        ) {
+        width = (widget.width?.toFloat() ?: 200f).sp,
+        height = (widget.height?.toFloat() ?: 150f).sp,
+    ) {
             DefaultMarkdownImage(
                 data = MarkdownImageData(
                     url = widget.url,
@@ -414,16 +434,15 @@ private fun AnnotatedString.Builder.renderImageWidget(
                 )
             )
         }
-    )
-    inlineContents[id] = entry
-    flowSegments?.appendInlineSegment(id, entry.toPlaceholderLayoutSpec())
+    paintPayloads[id] = payload
+    flowSegments?.appendInlineSegment(id, payload.placeholder)
 }
 
 private fun AnnotatedString.Builder.renderInlineMathWidget(
     widget: InlineMathWidgetModel,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     latexMeasurer: LatexMeasurerState?,
     density: Density?,
     textMeasurer: TextMeasurer?,
@@ -455,30 +474,25 @@ private fun AnnotatedString.Builder.renderInlineMathWidget(
     }
 
     appendInlinePlaceholder(id)
-    val entry = InlineContentEntry(
+    val payload = inlineWidgetPaintPayload(
         alternateText = widget.latex,
-        inlineTextContent = InlineTextContent(
-            placeholder = Placeholder(
-                width = placeholderWidth,
-                height = placeholderHeight,
-                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-            ),
-        ) {
+        width = placeholderWidth,
+        height = placeholderHeight,
+    ) {
             com.hrm.latex.renderer.Latex(
                 latex = widget.latex,
                 config = latexConfig,
             )
         }
-    )
-    inlineContents[id] = entry
-    flowSegments?.appendInlineSegment(id, entry.toPlaceholderLayoutSpec())
+    paintPayloads[id] = payload
+    flowSegments?.appendInlineSegment(id, payload.placeholder)
 }
 
 private fun AnnotatedString.Builder.renderSpoilerWidget(
     widget: SpoilerWidgetModel,
     theme: MarkdownTheme,
     hostTextStyle: TextStyle,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     directiveRegistry: MarkdownDirectiveRegistry,
     onLinkClick: ((String) -> Unit)?,
     onFootnoteClick: ((String) -> Unit)?,
@@ -492,20 +506,16 @@ private fun AnnotatedString.Builder.renderSpoilerWidget(
     val fontSize = theme.bodyStyle.fontSize.value
     val avgCharWidth = widget.alternateText.sumOf { ch -> if (ch.code > 0x7F) 12 else 7 }.toFloat() / 10f * (fontSize / 16f)
     appendInlinePlaceholder(id)
-    val entry = InlineContentEntry(
+    val payload = inlineWidgetPaintPayload(
         alternateText = widget.alternateText,
-        inlineTextContent = InlineTextContent(
-            placeholder = Placeholder(
-                width = (avgCharWidth + 8f).sp,
-                height = (fontSize * 1.5f).sp,
-                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-            ),
-        ) {
+        width = (avgCharWidth + 8f).sp,
+        height = (fontSize * 1.5f).sp,
+    ) {
             SpoilerContent(
                 model = widget.content,
                 theme = theme,
                 hostTextStyle = hostTextStyle,
-                inlineContents = inlineContents,
+                paintPayloads = paintPayloads,
                 directiveRegistry = directiveRegistry,
                 onLinkClick = onLinkClick,
                 onFootnoteClick = onFootnoteClick,
@@ -515,15 +525,14 @@ private fun AnnotatedString.Builder.renderSpoilerWidget(
                 inlineCodeTheme = inlineCodeTheme,
             )
         }
-    )
-    inlineContents[id] = entry
-    flowSegments?.appendInlineSegment(id, entry.toPlaceholderLayoutSpec())
+    paintPayloads[id] = payload
+    flowSegments?.appendInlineSegment(id, payload.placeholder)
 }
 
 private fun AnnotatedString.Builder.renderDirectiveInlineWidget(
     widget: DirectiveInlineWidgetModel,
     theme: MarkdownTheme,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     directiveRegistry: MarkdownDirectiveRegistry,
     flowSegments: MutableList<InlineFlowSegment>?,
 ) {
@@ -533,15 +542,11 @@ private fun AnnotatedString.Builder.renderDirectiveInlineWidget(
         val estimatedWidth = widget.alternateText.sumOf { ch -> if (ch.code > 0x7F) 12 else 7 }.toFloat() / 10f * (fontSize / 16f)
         val id = modelInlinePlaceholderId(widget)
         appendInlinePlaceholder(id)
-        val entry = InlineContentEntry(
+        val payload = inlineWidgetPaintPayload(
             alternateText = widget.alternateText,
-            inlineTextContent = InlineTextContent(
-                placeholder = Placeholder(
-                    width = (estimatedWidth + 8f).sp,
-                    height = (fontSize * 1.5f).sp,
-                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-                ),
-            ) {
+            width = (estimatedWidth + 8f).sp,
+            height = (fontSize * 1.5f).sp,
+        ) {
                 renderer(
                     createDirectiveInlineRenderScope(
                         tagName = widget.tagName,
@@ -550,9 +555,8 @@ private fun AnnotatedString.Builder.renderDirectiveInlineWidget(
                     )
                 )
             }
-        )
-        inlineContents[id] = entry
-        flowSegments?.appendInlineSegment(id, entry.toPlaceholderLayoutSpec())
+        paintPayloads[id] = payload
+        flowSegments?.appendInlineSegment(id, payload.placeholder)
     } else {
         appendStyledTextSegment(
             text = widget.alternateText,
@@ -569,29 +573,24 @@ private fun AnnotatedString.Builder.renderDirectiveInlineWidget(
 private fun AnnotatedString.Builder.renderRubyTextWidget(
     widget: RubyTextWidgetModel,
     theme: MarkdownTheme,
-    inlineContents: MutableMap<String, InlineContentEntry>,
+    paintPayloads: MutableMap<String, InlineWidgetPaintPayload>,
     flowSegments: MutableList<InlineFlowSegment>?,
 ) {
     val id = modelInlinePlaceholderId(widget)
     val fontSize = theme.bodyStyle.fontSize.value
     val baseWidth = widget.base.sumOf { ch -> if (ch.code > 0x7F) 12 else 7 }.toFloat() / 10f * (fontSize / 16f)
     appendInlinePlaceholder(id)
-    val entry = InlineContentEntry(
+    val payload = inlineWidgetPaintPayload(
         alternateText = widget.base,
-        inlineTextContent = InlineTextContent(
-            placeholder = Placeholder(
-                width = (baseWidth + 2f).sp,
-                height = (fontSize * 2.0f).sp,
-                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-            ),
-        ) {
+        width = (baseWidth + 2f).sp,
+        height = (fontSize * 2.0f).sp,
+    ) {
             RubyTextContent(
                 base = widget.base,
                 annotation = widget.annotation,
                 theme = theme,
             )
         }
-    )
-    inlineContents[id] = entry
-    flowSegments?.appendInlineSegment(id, entry.toPlaceholderLayoutSpec())
+    paintPayloads[id] = payload
+    flowSegments?.appendInlineSegment(id, payload.placeholder)
 }

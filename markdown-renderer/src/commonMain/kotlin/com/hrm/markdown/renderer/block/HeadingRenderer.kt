@@ -15,7 +15,7 @@ import com.hrm.markdown.renderer.LocalMarkdownConfig
 import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.LocalRendererDocument
-import com.hrm.markdown.renderer.inline.InlineFlowText
+import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
 import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
@@ -95,9 +95,9 @@ internal fun RenderHeadingBlockModel(
     )
 
     Column(modifier = modifier.fillMaxWidth()) {
-        InlineFlowText(
+        InlinePaintPayloadText(
             annotated = inlineResult.annotated,
-            inlineContents = inlineResult.inlineContents,
+            paintPayloads = inlineResult.paintPayloads,
             flowInput = inlineResult.flowInput,
             style = style,
         )

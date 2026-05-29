@@ -1,5 +1,7 @@
 package com.hrm.markdown.renderer.internal.layout.model
 
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.model.BlockWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.ColumnsLayoutBlockModel
@@ -19,6 +21,7 @@ import com.hrm.markdown.renderer.internal.core.model.TableCellBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableRowBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TocBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TocEntryBlockModel
+import com.hrm.markdown.renderer.inline.InlineWidgetPaintPayload
 
 sealed interface InternalLayoutBlockModel {
     val identity: RenderIdentity
@@ -203,33 +206,37 @@ data class BlockWidgetMeasurement(
     val scrollableHorizontally: Boolean = false,
 )
 
-data class LayoutInlineBlockModel(
+internal data class LayoutInlineBlockModel(
     override val identity: RenderIdentity,
     override val frame: LayoutRect,
     override val contentFrame: LayoutRect,
+    val style: TextStyle,
+    val inlinePayloads: Map<String, InlineWidgetPaintPayload>,
+    val showDivider: Boolean = false,
     val lines: List<LayoutInlineLine>,
 ) : InternalLayoutBlockModel
 
-data class LayoutInlineLine(
+internal data class LayoutInlineLine(
     val frame: LayoutRect,
     val baseline: Float,
     val runs: List<LayoutInlineRun>,
 )
 
-sealed interface LayoutInlineRun {
+internal sealed interface LayoutInlineRun {
     val identity: RenderIdentity
     val frame: LayoutRect
 }
 
-data class LayoutTextRun(
+internal data class LayoutTextRun(
     override val identity: RenderIdentity,
     override val frame: LayoutRect,
-    val text: String,
-    val marks: List<String> = emptyList(),
+    val text: AnnotatedString,
 ) : LayoutInlineRun
 
-data class LayoutWidgetRun(
+internal data class LayoutWidgetRun(
     override val identity: RenderIdentity,
     override val frame: LayoutRect,
+    val id: String,
     val widget: InlineWidgetModel,
+    val alternateText: String = "",
 ) : LayoutInlineRun

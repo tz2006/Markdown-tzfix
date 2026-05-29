@@ -33,6 +33,18 @@ import com.hrm.markdown.parser.flavour.MarkdownFlavour
  *
  * 参考 JetBrains Markdown 的 `HtmlGenerator(src, parsedTree, flavour).generateHtml()` API 设计。
  */
+data class HtmlDirectiveBlockSnapshot(
+    val tagName: String,
+    val args: Map<String, String>,
+    val hasContent: Boolean,
+)
+
+data class HtmlDirectiveInlineSnapshot(
+    val tagName: String,
+    val args: Map<String, String>,
+    val alternateText: String,
+)
+
 class HtmlRenderer(
     /** 软换行输出内容，默认 "\n" */
     val softBreak: String = "\n",
@@ -43,9 +55,9 @@ class HtmlRenderer(
     /** 是否使用 XHTML 风格自闭合标签 */
     val xhtml: Boolean = true,
     /** 自定义块级 directive HTML fallback，返回 null 则走默认输出 */
-    val directiveBlockFallback: ((DirectiveBlock) -> String?)? = null,
+    val directiveBlockFallback: ((HtmlDirectiveBlockSnapshot) -> String?)? = null,
     /** 自定义行内 directive HTML fallback，返回 null 则走默认输出 */
-    val directiveInlineFallback: ((DirectiveInline) -> String?)? = null,
+    val directiveInlineFallback: ((HtmlDirectiveInlineSnapshot) -> String?)? = null,
 ) : NodeVisitor<Unit> {
 
     private val sb = StringBuilder()
@@ -497,7 +509,12 @@ class HtmlRenderer(
     }
 
     override fun visitDirectiveBlock(node: DirectiveBlock) {
-        val custom = directiveBlockFallback?.invoke(node)
+        val snapshot = HtmlDirectiveBlockSnapshot(
+            tagName = node.tagName,
+            args = node.args,
+            hasContent = node.children.isNotEmpty(),
+        )
+        val custom = directiveBlockFallback?.invoke(snapshot)
         if (custom != null) {
             sb.append(custom)
             if (!custom.endsWith('\n')) {
@@ -505,9 +522,9 @@ class HtmlRenderer(
             }
             return
         }
-        val argsStr = node.args.entries.joinToString(" ") { "${it.key}=${it.value}" }
+        val argsStr = snapshot.args.entries.joinToString(" ") { "${it.key}=${it.value}" }
         val attrs = mutableMapOf<String, String?>(
-            "data-directive" to node.tagName,
+            "data-directive" to snapshot.tagName,
         )
         if (argsStr.isNotEmpty()) {
             attrs["data-args"] = argsStr
@@ -695,14 +712,19 @@ class HtmlRenderer(
     }
 
     override fun visitDirectiveInline(node: DirectiveInline) {
-        val custom = directiveInlineFallback?.invoke(node)
+        val snapshot = HtmlDirectiveInlineSnapshot(
+            tagName = node.tagName,
+            args = node.args,
+            alternateText = node.literal,
+        )
+        val custom = directiveInlineFallback?.invoke(snapshot)
         if (custom != null) {
             sb.append(custom)
             return
         }
-        val argsStr = node.args.entries.joinToString(" ") { "${it.key}=${it.value}" }
+        val argsStr = snapshot.args.entries.joinToString(" ") { "${it.key}=${it.value}" }
         val attrs = mutableMapOf<String, String?>(
-            "data-directive" to node.tagName,
+            "data-directive" to snapshot.tagName,
         )
         if (argsStr.isNotEmpty()) {
             attrs["data-args"] = argsStr
