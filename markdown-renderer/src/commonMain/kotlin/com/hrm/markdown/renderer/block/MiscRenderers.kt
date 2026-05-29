@@ -35,6 +35,7 @@ import com.hrm.markdown.renderer.LocalOnFootnoteBackClick
 import com.hrm.markdown.renderer.MarkdownBlockChildren
 import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionDescriptionBlockModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionListBlockModel
 import com.hrm.markdown.renderer.internal.core.model.DefinitionTermBlockModel
@@ -99,14 +100,16 @@ internal fun DefinitionListRenderer(
         for (child in node.children) {
             when (child) {
                 is DefinitionTerm -> {
+                    val inlineModel = rememberInlineModel(child)
                     val inlineResult = rememberInlineContent(
-                        parent = child,
+                        model = inlineModel,
                         hostTextStyle = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                     InlinePaintPayloadText(
                         annotated = inlineResult.annotated,
                         paintPayloads = inlineResult.paintPayloads,
                         flowInput = inlineResult.flowInput,
+                        inlineModel = inlineModel,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                 }
@@ -146,6 +149,7 @@ internal fun RenderDefinitionListBlockModel(
                         annotated = inlineResult.annotated,
                         paintPayloads = inlineResult.paintPayloads,
                         flowInput = inlineResult.flowInput,
+                        inlineModel = item.inline,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                 }
@@ -182,6 +186,7 @@ internal fun RenderDefinitionListLayoutBlockModel(
                         annotated = inlineResult.annotated,
                         paintPayloads = inlineResult.paintPayloads,
                         flowInput = inlineResult.flowInput,
+                        inlineModel = item.item.inline,
                         style = theme.bodyStyle.copy(fontWeight = FontWeight.Bold),
                     )
                 }

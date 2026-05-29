@@ -25,6 +25,7 @@ import com.hrm.markdown.renderer.LocalMarkdownTheme
 import com.hrm.markdown.renderer.LocalOnLinkClick
 import com.hrm.markdown.renderer.inline.InlinePaintPayloadText
 import com.hrm.markdown.renderer.inline.rememberInlineContent
+import com.hrm.markdown.renderer.inline.rememberInlineModel
 import com.hrm.markdown.renderer.internal.core.model.TableBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableCellBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableRowBlockModel
@@ -180,8 +181,9 @@ private fun TableCellRenderer(
         return
     }
 
+    val inlineModel = rememberInlineModel(cell)
     val inlineResult = rememberInlineContent(
-        parent = cell,
+        model = inlineModel,
         onLinkClick = onLinkClick,
         hostTextStyle = style,
     )
@@ -190,6 +192,7 @@ private fun TableCellRenderer(
             annotated = inlineResult.annotated,
             paintPayloads = inlineResult.paintPayloads,
             flowInput = inlineResult.flowInput,
+            inlineModel = inlineModel,
             style = style,
             maxLines = 1,
         )
@@ -360,6 +363,7 @@ private fun TableBlockModelCellRenderer(
             annotated = inlineResult.annotated,
             paintPayloads = inlineResult.paintPayloads,
             flowInput = inlineResult.flowInput,
+            inlineModel = cell.inline,
             style = style,
             maxLines = 1,
         )

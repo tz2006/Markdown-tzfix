@@ -24,7 +24,7 @@ internal fun rememberInlineContent(
     parent: ContainerNode,
     onLinkClick: ((String) -> Unit)? = null,
     hostTextStyle: TextStyle = LocalMarkdownTheme.current.bodyStyle,
-): InlineContentResult {
+): InlineRenderResult {
     val inlineModel = rememberInlineModel(parent)
     return rememberInlineContent(
         model = inlineModel,
@@ -67,7 +67,7 @@ internal fun rememberInlineContent(
     model: InlineModel,
     onLinkClick: ((String) -> Unit)? = null,
     hostTextStyle: TextStyle = LocalMarkdownTheme.current.bodyStyle,
-): InlineContentResult {
+): InlineRenderResult {
     val theme = LocalMarkdownTheme.current
     val directiveRegistry = LocalMarkdownDirectiveRegistry.current
     val onFootnoteClick = LocalOnFootnoteClick.current
@@ -87,7 +87,7 @@ internal fun rememberInlineContent(
         textMeasurer,
         inlineCodeTheme
     ) {
-        buildInlineContentResultFromModel(
+        buildInlineRenderResultFromModel(
             model = model,
             theme = theme,
             hostTextStyle = hostTextStyle,
@@ -108,7 +108,7 @@ internal fun rememberInlineNodesContent(
     inlineRevision: Long,
     onLinkClick: ((String) -> Unit)? = null,
     hostTextStyle: TextStyle = LocalMarkdownTheme.current.bodyStyle,
-): InlineContentResult {
+): InlineRenderResult {
     val inlineModel = rememberInlineModel(
         nodes = nodes,
         inlineRevision = inlineRevision,

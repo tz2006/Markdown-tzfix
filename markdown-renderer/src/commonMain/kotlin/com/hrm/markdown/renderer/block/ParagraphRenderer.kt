@@ -90,6 +90,7 @@ internal fun RenderParagraphBlockModel(
         annotated = inlineResult.annotated,
         paintPayloads = inlineResult.paintPayloads,
         flowInput = inlineResult.flowInput,
+        inlineModel = inlineModel,
         modifier = modifier.fillMaxWidth(),
         style = theme.bodyStyle,
     )
@@ -139,6 +140,7 @@ internal fun RenderMixedParagraphBlockModel(
                             annotated = inlineResult.annotated,
                             paintPayloads = inlineResult.paintPayloads,
                             flowInput = inlineResult.flowInput,
+                            inlineModel = segment.model,
                             modifier = Modifier.fillMaxWidth(),
                             style = theme.bodyStyle,
                         )

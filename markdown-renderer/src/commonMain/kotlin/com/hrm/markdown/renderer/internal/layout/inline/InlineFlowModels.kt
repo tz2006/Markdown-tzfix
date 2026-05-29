@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import com.hrm.markdown.renderer.inline.InlinePlaceholderId
 
 internal data class InlineFlowLayout(
     val widthPx: Float,
@@ -34,7 +35,7 @@ internal sealed class LineItem {
     ) : LineItem()
 
     data class InlineItem(
-        val id: String,
+        val id: InlinePlaceholderId,
         override val widthPx: Float,
         override val heightPx: Float,
         val alternateText: String,

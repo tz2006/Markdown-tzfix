@@ -99,6 +99,7 @@ internal fun RenderHeadingBlockModel(
             annotated = inlineResult.annotated,
             paintPayloads = inlineResult.paintPayloads,
             flowInput = inlineResult.flowInput,
+            inlineModel = finalModel,
             style = style,
         )
 

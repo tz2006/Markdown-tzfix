@@ -1,8 +1,10 @@
 package com.hrm.markdown.renderer.inline
 
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.sp
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class InlineRenderModelsTest {
     @Test
@@ -18,5 +20,41 @@ class InlineRenderModelsTest {
         assertEquals("latex", spec.alternateText)
         assertEquals(12.sp, spec.width)
         assertEquals(18.sp, spec.height)
+    }
+
+    @Test
+    fun should_decode_inline_placeholder_ids_from_annotations() {
+        val annotated = buildAnnotatedString {
+            append("prefix ")
+            appendInlinePlaceholder(InlinePlaceholderId(42))
+            append(" suffix")
+        }
+
+        assertEquals(listOf(InlinePlaceholderId(42)), annotated.getInlinePlaceholderIds())
+    }
+
+    @Test
+    fun should_decode_inline_placeholder_ranges_from_annotations() {
+        val annotated = buildAnnotatedString {
+            append("ab")
+            appendInlinePlaceholder(InlinePlaceholderId(7))
+            append("cd")
+        }
+
+        assertEquals(
+            listOf(
+                InlinePlaceholderAnnotationRange(
+                    id = InlinePlaceholderId(7),
+                    start = 2,
+                    end = 3,
+                )
+            ),
+            annotated.getInlinePlaceholderRanges(),
+        )
+    }
+
+    @Test
+    fun should_return_null_when_placeholder_annotation_is_invalid() {
+        assertNull(InlinePlaceholderId.fromAnnotation("not-a-number"))
     }
 }

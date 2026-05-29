@@ -21,6 +21,7 @@ import com.hrm.markdown.renderer.internal.core.model.TableCellBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TableRowBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TocBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TocEntryBlockModel
+import com.hrm.markdown.renderer.inline.InlinePlaceholderId
 import com.hrm.markdown.renderer.inline.InlineWidgetPaintPayload
 
 sealed interface InternalLayoutBlockModel {
@@ -211,7 +212,7 @@ internal data class LayoutInlineBlockModel(
     override val frame: LayoutRect,
     override val contentFrame: LayoutRect,
     val style: TextStyle,
-    val inlinePayloads: Map<String, InlineWidgetPaintPayload>,
+    val inlinePayloads: Map<InlinePlaceholderId, InlineWidgetPaintPayload>,
     val showDivider: Boolean = false,
     val lines: List<LayoutInlineLine>,
 ) : InternalLayoutBlockModel
@@ -236,7 +237,7 @@ internal data class LayoutTextRun(
 internal data class LayoutWidgetRun(
     override val identity: RenderIdentity,
     override val frame: LayoutRect,
-    val id: String,
+    val id: InlinePlaceholderId,
     val widget: InlineWidgetModel,
     val alternateText: String = "",
 ) : LayoutInlineRun

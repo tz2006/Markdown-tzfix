@@ -29,13 +29,14 @@ import com.hrm.markdown.renderer.internal.core.model.TableBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TextAtom
 import com.hrm.markdown.renderer.internal.core.model.ThematicBreakBlockModel
 import com.hrm.markdown.renderer.internal.core.model.TocBlockModel
-import com.hrm.markdown.renderer.internal.core.model.WidgetAtom
 import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromText
 import com.hrm.markdown.renderer.internal.core.identity.renderIdentityFromValues
-import com.hrm.markdown.renderer.inline.buildInlineContentResultFromModel
-import com.hrm.markdown.renderer.internal.layout.inline.LineItem
+import com.hrm.markdown.renderer.inline.buildInlineRenderResultFromModel
+import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutBlockModel
+import com.hrm.markdown.renderer.internal.layout.inline.buildInlineLayoutLines
 import com.hrm.markdown.renderer.internal.layout.inline.computeInlineFlowLayout
+import com.hrm.markdown.renderer.internal.layout.inline.inlineWidgetByPlaceholderId
 import com.hrm.markdown.renderer.internal.layout.model.BlockWidgetMeasurement
 import com.hrm.markdown.renderer.internal.layout.model.InternalLayoutBlockModel
 import com.hrm.markdown.renderer.internal.layout.model.InternalLayoutDocumentMetadata
@@ -387,7 +388,7 @@ private fun layoutInlineBlock(
     val contentLeft = left + insets.left
     val contentTop = top + insets.top
     val contentWidth = (width - insets.left - insets.right).coerceAtLeast(0f)
-    val inlineResult = buildInlineContentResultFromModel(
+    val inlineResult = buildInlineRenderResultFromModel(
         model = model,
         theme = environment.markdownTheme,
         hostTextStyle = style,
@@ -404,58 +405,17 @@ private fun layoutInlineBlock(
         maxWidthPx = contentWidth,
         maxLines = Int.MAX_VALUE,
     )
-    val widgetById = model.atoms.asSequence()
-        .mapNotNull { atom -> (atom as? WidgetAtom)?.widget }
-        .associateBy { com.hrm.markdown.renderer.inline.modelInlinePlaceholderId(it) }
-    val lines = layout.lines.mapIndexed { index, line ->
-        var cursorX = contentLeft
-        val lineTop = contentTop + layout.lines.take(index).sumOf { it.lineHeightPx.toDouble() }.toFloat()
-        val runs = line.items.map { item ->
-            when (item) {
-                is LineItem.TextItem -> {
-                    val run = LayoutTextRun(
-                        identity = RenderIdentity(
-                            stableId = renderIdentityFromText(item.text.text, identity.stableId + cursorX.toLong()),
-                            contentRevision = identity.contentRevision,
-                            layoutRevision = identity.layoutRevision,
-                            paintRevision = identity.paintRevision,
-                        ),
-                        frame = LayoutRect(cursorX, lineTop, item.widthPx, item.heightPx),
-                        text = item.text,
-                    )
-                    cursorX += item.widthPx
-                    run
-                }
-                is LineItem.InlineItem -> {
-                    val widget = widgetById[item.id]
-                    val run = LayoutWidgetRun(
-                        identity = widget?.identity ?: identity,
-                        frame = LayoutRect(cursorX, lineTop, item.widthPx, item.heightPx),
-                        id = item.id,
-                        widget = widget ?: throw IllegalStateException("Missing inline widget for placeholder ${item.id}"),
-                        alternateText = item.alternateText,
-                    )
-                    cursorX += item.widthPx
-                    run
-                }
-            }
-        }
-        LayoutInlineLine(
-            frame = LayoutRect(contentLeft, lineTop, line.lineWidthPx, line.lineHeightPx),
-            baseline = line.baselinePx,
-            runs = runs,
-        )
-    }
     val dividerHeight = if (showDivider) 4f + with(environment.density) { environment.markdownTheme.dividerThickness.toPx() } else 0f
     val contentHeight = layout.heightPx + dividerHeight
-    return LayoutInlineBlockModel(
+    return buildInlineLayoutBlockModel(
         identity = identity,
         frame = LayoutRect(left, top, width, insets.top + contentHeight + insets.bottom),
         contentFrame = LayoutRect(contentLeft, contentTop, contentWidth, contentHeight),
         style = style,
+        layout = layout,
         inlinePayloads = inlineResult.paintPayloads,
+        widgetById = inlineWidgetByPlaceholderId(model),
         showDivider = showDivider,
-        lines = lines,
     )
 }
 
