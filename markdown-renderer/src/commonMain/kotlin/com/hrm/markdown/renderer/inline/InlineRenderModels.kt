@@ -6,6 +6,7 @@ import com.hrm.markdown.renderer.internal.core.identity.RenderIdentity
 import com.hrm.markdown.renderer.internal.core.model.InlineWidgetModel
 import com.hrm.markdown.renderer.internal.layout.inline.InlineFlowInput
 import com.hrm.markdown.renderer.internal.layout.inline.InlinePlaceholderLayoutSpec
+import kotlin.jvm.JvmInline
 
 internal const val INLINE_PLACEHOLDER_TAG = "markdown-inline-placeholder"
 internal const val INLINE_PLACEHOLDER_CHAR = '\uFFFC'
