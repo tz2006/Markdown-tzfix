@@ -4,6 +4,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.luminance
 import com.hrm.markdown.parser.ast.Document
+import com.hrm.markdown.renderer.DiagramHostRegistry
 import com.hrm.latex.renderer.measure.LatexMeasurerState
 import com.hrm.markdown.renderer.MarkdownTheme
 import com.hrm.markdown.renderer.internal.compose.DefaultMarkdownComposePainter
@@ -40,6 +41,7 @@ internal class MarkdownEngineHost(
         density: Density,
         textMeasurer: TextMeasurer,
         latexMeasurer: LatexMeasurerState,
+        diagramHostRegistry: DiagramHostRegistry,
     ): InternalLayoutDocumentModel {
         return layoutEngine.layout(
             document = renderDocument,
@@ -52,6 +54,7 @@ internal class MarkdownEngineHost(
                 textMeasurer = textMeasurer,
                 latexMeasurer = latexMeasurer,
                 compileEnvironment = facadeState.toCompileEnvironment(),
+                diagramHostRegistry = diagramHostRegistry,
             ),
         )
     }

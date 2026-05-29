@@ -42,40 +42,57 @@ internal val LocalFootnoteNavigationState = compositionLocalOf<FootnoteNavigatio
 internal val LocalCodeHighlightTheme = compositionLocalOf<CodeTheme?> { null }
 internal val LocalIsStreaming = compositionLocalOf { false }
 internal val LocalMarkdownDirectiveRegistry = compositionLocalOf { MarkdownDirectiveRegistry.Empty }
-internal val LocalDiagramStreamingStabilizer = compositionLocalOf { DiagramStreamingStabilizer() }
+internal val LocalDiagramHostRegistry = compositionLocalOf { DiagramHostRegistry() }
+
+internal enum class DiagramHostRoute {
+    Pending,
+    Diagram,
+    Fallback,
+}
 
 @Stable
-internal class DiagramStreamingStabilizer {
+internal class DiagramHostRegistry {
     private val minHeightsPx = mutableStateMapOf<Long, Float>()
-    private val routeToDiagram = mutableStateMapOf<Long, Boolean>()
+    private val routeStates = mutableStateMapOf<Long, DiagramHostRoute>()
 
-    fun minHeightPx(blockStableId: Long, isStreaming: Boolean): Float {
-        return if (isStreaming) minHeightsPx[blockStableId] ?: 0f else 0f
+    fun cachedHeightPx(hostKey: Long): Float? = minHeightsPx[hostKey]
+
+    fun minHeightPx(hostKey: Long, isStreaming: Boolean): Float {
+        return if (isStreaming) minHeightsPx[hostKey] ?: 0f else 0f
     }
 
-    fun observeHeight(blockStableId: Long, heightPx: Float, isStreaming: Boolean) {
-        if (!isStreaming) return
-        val previous = minHeightsPx[blockStableId] ?: 0f
+    fun observeHeight(hostKey: Long, heightPx: Float) {
+        val previous = minHeightsPx[hostKey] ?: 0f
         if (heightPx > previous) {
-            minHeightsPx[blockStableId] = heightPx
+            minHeightsPx[hostKey] = heightPx
         }
     }
 
-    fun shouldRenderDiagram(
-        blockStableId: Long,
+    fun route(
+        hostKey: Long,
         detectedDiagram: Boolean,
+        hasCode: Boolean,
         isStreaming: Boolean,
-    ): Boolean {
-        if (!isStreaming) return detectedDiagram
-        if (detectedDiagram) {
-            routeToDiagram[blockStableId] = true
+    ): DiagramHostRoute {
+        if (!hasCode) {
+            return if (isStreaming) DiagramHostRoute.Pending else DiagramHostRoute.Fallback
         }
-        return routeToDiagram[blockStableId] ?: false
+        if (!isStreaming) {
+            return if (detectedDiagram) DiagramHostRoute.Diagram else DiagramHostRoute.Fallback
+        }
+        val current = routeStates[hostKey]
+        if (current == DiagramHostRoute.Diagram) {
+            return DiagramHostRoute.Diagram
+        }
+        if (detectedDiagram) {
+            routeStates[hostKey] = DiagramHostRoute.Diagram
+            return DiagramHostRoute.Diagram
+        }
+        return current ?: DiagramHostRoute.Pending
     }
 
     fun reset() {
-        minHeightsPx.clear()
-        routeToDiagram.clear()
+        routeStates.clear()
     }
 }
 
@@ -91,6 +108,7 @@ internal fun ProvideRendererContext(
     codeTheme: CodeTheme? = null,
     isStreaming: Boolean = false,
     directiveRegistry: MarkdownDirectiveRegistry = MarkdownDirectiveRegistry.Empty,
+    diagramHostRegistry: DiagramHostRegistry = remember { DiagramHostRegistry() },
     content: @Composable () -> Unit,
 ) {
     // 用 rememberUpdatedState 包装 onLinkClick：
@@ -110,10 +128,9 @@ internal fun ProvideRendererContext(
     val stableOnFootnoteBackClick: (String) -> Unit = remember {
         { label: String -> currentOnFootnoteBackClick.value?.invoke(label) }
     }
-    val diagramStreamingStabilizer = remember { DiagramStreamingStabilizer() }
     LaunchedEffect(isStreaming) {
         if (!isStreaming) {
-            diagramStreamingStabilizer.reset()
+            diagramHostRegistry.reset()
         }
     }
 
@@ -128,7 +145,7 @@ internal fun ProvideRendererContext(
         LocalCodeHighlightTheme provides codeTheme,
         LocalIsStreaming provides isStreaming,
         LocalMarkdownDirectiveRegistry provides directiveRegistry,
-        LocalDiagramStreamingStabilizer provides diagramStreamingStabilizer,
+        LocalDiagramHostRegistry provides diagramHostRegistry,
     ) {
         content()
     }

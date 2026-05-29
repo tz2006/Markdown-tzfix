@@ -87,6 +87,7 @@ internal fun MarkdownDocumentRenderer(
         }
         val density = LocalDensity.current
         val latexMeasurer = rememberLatexMeasurer()
+        val diagramHostRegistry = remember { DiagramHostRegistry() }
         BoxWithConstraints(modifier = modifier) {
             val viewportWidthPx = with(density) { maxWidth.toPx() }
             val blockSpacingPx = with(density) { theme.blockSpacing.toPx() }
@@ -100,6 +101,7 @@ internal fun MarkdownDocumentRenderer(
                 density,
                 textMeasurer,
                 latexMeasurer,
+                diagramHostRegistry,
             ) {
                 engineHost.layout(
                     renderDocument = internalRenderDocument,
@@ -109,6 +111,7 @@ internal fun MarkdownDocumentRenderer(
                     density = density,
                     textMeasurer = textMeasurer,
                     latexMeasurer = latexMeasurer,
+                    diagramHostRegistry = diagramHostRegistry,
                 )
             }
             val renderState = rememberMarkdownBlockRenderState(
@@ -140,6 +143,7 @@ internal fun MarkdownDocumentRenderer(
                 codeTheme = codeTheme,
                 isStreaming = isStreaming,
                 directiveRegistry = directiveRegistry,
+                diagramHostRegistry = diagramHostRegistry,
             ) {
                 engineHost.composePainter.Paint(
                     document = layoutDocument,

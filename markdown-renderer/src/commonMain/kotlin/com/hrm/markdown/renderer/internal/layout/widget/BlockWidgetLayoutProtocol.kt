@@ -4,6 +4,7 @@ import com.hrm.markdown.renderer.internal.core.model.BlockWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.CodeBlockWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.DiagramBlockWidgetModel
 import com.hrm.markdown.renderer.internal.core.model.MathBlockWidgetModel
+import com.hrm.markdown.renderer.internal.layout.engine.LayoutEnvironment
 import com.hrm.markdown.renderer.internal.layout.model.BlockWidgetMeasurement
 import kotlin.math.ceil
 import kotlin.math.max
@@ -11,11 +12,12 @@ import kotlin.math.max
 internal fun measureBlockWidget(
     widget: BlockWidgetModel,
     viewportWidthPx: Float,
+    environment: LayoutEnvironment,
 ): BlockWidgetMeasurement {
     return when (widget) {
         is CodeBlockWidgetModel -> measureCodeWidget(widget, viewportWidthPx)
         is MathBlockWidgetModel -> measureMathWidget(widget, viewportWidthPx)
-        is DiagramBlockWidgetModel -> measureDiagramWidget(widget, viewportWidthPx)
+        is DiagramBlockWidgetModel -> measureDiagramWidget(widget, viewportWidthPx, environment)
     }
 }
 
@@ -51,7 +53,15 @@ private fun measureMathWidget(
 private fun measureDiagramWidget(
     widget: DiagramBlockWidgetModel,
     viewportWidthPx: Float,
+    environment: LayoutEnvironment,
 ): BlockWidgetMeasurement {
+    val cachedHeight = environment.diagramHostRegistry.cachedHeightPx(widget.hostKey)
+    if (cachedHeight != null) {
+        return BlockWidgetMeasurement(
+            widthPx = viewportWidthPx,
+            heightPx = cachedHeight,
+        )
+    }
     val lineCount = widget.code.lineSequence().count().coerceAtLeast(3)
     val preferredHeight = when (widget.diagramType.lowercase()) {
         "mermaid" -> 120f + lineCount * 10f

@@ -62,6 +62,7 @@ data class MathBlockWidgetModel(
 
 data class DiagramBlockWidgetModel(
     override val identity: RenderIdentity,
+    val hostKey: Long,
     val diagramType: String,
     val code: String,
 ) : BlockWidgetModel

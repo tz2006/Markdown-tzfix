@@ -230,6 +230,7 @@ private fun compileBlock(
             code = node.literal,
             widget = DiagramBlockWidgetModel(
                 identity = identity,
+                hostKey = diagramHostKey(node),
                 diagramType = node.diagramType,
                 code = node.literal,
             ),
@@ -468,6 +469,14 @@ private fun blockStableId(node: Node): Long {
         node.sourceRange.end.offset.toLong(),
         node.lineRange.startLine.toLong(),
         node.lineRange.endLine.toLong(),
+    )
+}
+
+private fun diagramHostKey(node: DiagramBlock): Long {
+    return renderIdentityFromValues(
+        renderIdentityFromText("DiagramHost"),
+        renderIdentityFromText(node.diagramType.lowercase()),
+        node.lineRange.startLine.toLong(),
     )
 }
 

@@ -21,7 +21,7 @@ lifecycleRuntimeKtx = "2.10.0"
 composeBom = "2026.05.01"
 latex = '1.4.6'
 codehigh = '1.1.2'
-diagram = '1.0.3'
+diagram = '1.0.4'
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

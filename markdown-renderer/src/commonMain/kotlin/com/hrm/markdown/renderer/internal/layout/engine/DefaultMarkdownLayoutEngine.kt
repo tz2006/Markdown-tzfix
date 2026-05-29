@@ -73,7 +73,7 @@ import com.hrm.markdown.renderer.internal.layout.model.LayoutWidgetBlockModel
 import com.hrm.markdown.renderer.internal.layout.widget.measureBlockWidget
 import kotlin.math.max
 
-object DefaultMarkdownLayoutEngine : MarkdownLayoutEngine {
+internal object DefaultMarkdownLayoutEngine : MarkdownLayoutEngine {
     override fun layout(
         document: InternalRenderDocumentModel,
         environment: LayoutEnvironment,
@@ -695,7 +695,11 @@ private fun layoutWidgetBlock(
     insets: LayoutInsets,
     environment: LayoutEnvironment,
 ): LayoutWidgetBlockModel {
-    val measurement = measureBlockWidget(widget, (width - insets.left - insets.right).coerceAtLeast(0f))
+    val measurement = measureBlockWidget(
+        widget = widget,
+        viewportWidthPx = (width - insets.left - insets.right).coerceAtLeast(0f),
+        environment = environment,
+    )
     val contentFrame = LayoutRect(
         left = left + insets.left,
         top = top + insets.top,

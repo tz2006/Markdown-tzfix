@@ -31,15 +31,21 @@ internal fun DiagramFallback(
     code: String,
     typeName: String,
     modifier: Modifier = Modifier,
+    decorate: Boolean = true,
 ) {
     val theme = LocalMarkdownTheme.current
-
-    Column(
-        modifier = modifier
+    val contentModifier = if (decorate) {
+        modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(theme.codeBlockCornerRadius))
             .background(Color(0xFFF0F4F8))
-            .padding(theme.codeBlockPadding),
+            .padding(theme.codeBlockPadding)
+    } else {
+        modifier.fillMaxWidth()
+    }
+
+    Column(
+        modifier = contentModifier,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

@@ -219,6 +219,31 @@ class StreamingParserTest {
         parser.endStream()
     }
 
+    @Test
+    fun should_not_extend_temporary_inline_math_to_next_line_text() {
+        val parser = MarkdownParser()
+        parser.beginStream()
+        parser.append("其中，\$(h, k)\n")
+        parser.append("为什么抛物线的函数可以表示为 y = a(x - h)^2 + k ？")
+
+        val doc = parser.document
+        val para = doc.children.firstOrNull { it is Paragraph } as? Paragraph
+        assertIs<Paragraph>(para)
+
+        val mathNodes = para.children.filterIsInstance<InlineMath>()
+        assertTrue(mathNodes.isNotEmpty(), "Expected temporary inline math node")
+        assertFalse(
+            mathNodes.any { it.literal.contains("为什么抛物线") },
+            "Following line text should not be swallowed into temporary inline math"
+        )
+        assertTrue(
+            para.children.filterIsInstance<Text>().any { it.literal.contains("为什么抛物线的函数可以表示为") },
+            "Expected following line text to stay as normal text"
+        )
+
+        parser.endStream()
+    }
+
     // ────── 未关闭链接修复 ──────
 
     @Test
