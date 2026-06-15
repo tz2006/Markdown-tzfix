@@ -175,12 +175,27 @@ private fun compileInlineNode(
             )
         }
 
+//        is InlineMath -> {
+//            sink += WidgetAtom(
+//                identity = nodeIdentity(node),
+//                widget = InlineMathWidgetModel(
+//                    identity = nodeIdentity(node),
+//                    latex = node.literal,
+//                )
+//            )
+//        }
+
         is InlineMath -> {
+            val baseIdentity = nodeIdentity(node)
+            // Mix in atom position to break stableId collisions when sourceRange is unset
+            val uniqueStableId = renderIdentityMix(baseIdentity.stableId, sink.size.toLong())
+            val uniqueIdentity = baseIdentity.copy(stableId = uniqueStableId)
             sink += WidgetAtom(
-                identity = nodeIdentity(node),
+                identity = uniqueIdentity,
                 widget = InlineMathWidgetModel(
-                    identity = nodeIdentity(node),
+                    identity = uniqueIdentity,
                     latex = node.literal,
+                    display = node.display,        // ← pass the display flag too
                 )
             )
         }

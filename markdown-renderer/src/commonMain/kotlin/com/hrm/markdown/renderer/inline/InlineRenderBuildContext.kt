@@ -19,6 +19,9 @@ internal class InlineRenderBuildContext(
     val paintPayloads: MutableMap<InlinePlaceholderId, InlineWidgetPaintPayload> = linkedMapOf(),
     val flowSegments: MutableList<InlineFlowSegment>? = null,
 ) {
+    private var widgetCounter = 0L   // ← ADD THIS
+
+
     fun emitTextAtom(
         builder: AnnotatedString.Builder,
         segment: AnnotatedString,
@@ -167,6 +170,26 @@ internal class InlineRenderBuildContext(
         flowSegments?.appendInlineSegment(id, payload.placeholder)
     }
 
+//    private fun emitInlineWidget(
+//        builder: AnnotatedString.Builder,
+//        widget: InlineWidgetModel,
+//        alternateText: String,
+//        widthPx: Float,
+//        heightPx: Float,
+//        content: @Composable () -> Unit,
+//    ) {
+//        emitWidgetPayload(
+//            builder = builder,
+//            id = InlinePlaceholderId.from(widget),
+//            payload = inlineWidgetPaintPayload(
+//                alternateText = alternateText,
+//                widthPx = widthPx,
+//                heightPx = heightPx,
+//                content = content,
+//            ),
+//        )
+//    }
+
     private fun emitInlineWidget(
         builder: AnnotatedString.Builder,
         widget: InlineWidgetModel,
@@ -177,7 +200,7 @@ internal class InlineRenderBuildContext(
     ) {
         emitWidgetPayload(
             builder = builder,
-            id = InlinePlaceholderId.from(widget),
+            id = InlinePlaceholderId.from(widget),   // ← back to original
             payload = inlineWidgetPaintPayload(
                 alternateText = alternateText,
                 widthPx = widthPx,

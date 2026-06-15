@@ -24,6 +24,7 @@ class InlineParser(
 ) : BlockParser.InlineParserInterface {
 
     override fun parseInlines(content: String, parent: ContainerNode) {
+        println("WE USING THE LOCALLY MARK DOWN BABA")
         if (content.isEmpty()) return
         val parser = InlineParserInstance(content, document, customEmojiMap, enableAsciiEmoticons, enableGfmAutolinks, enableExtendedInline, enableStrikethrough)
         val nodes = parser.parse()
@@ -309,6 +310,8 @@ private class InlineParserInstance(
     // ────── 链表操作 ──────
 
     private fun appendLL(node: Node): LLNode {
+        println("WE USING THE LOCALLY MARK DOWN BABA")
+
         val ll = LLNode(node)
         ll.prev = llTail
         if (llTail != null) {
@@ -321,6 +324,8 @@ private class InlineParserInstance(
     }
 
     private fun insertAfterLL(after: LLNode, node: Node): LLNode {
+        println("WE USING THE LOCALLY MARK DOWN BABA")
+
         val ll = LLNode(node)
         ll.prev = after
         ll.next = after.next
@@ -336,6 +341,8 @@ private class InlineParserInstance(
     private fun removeLL(ll: LLNode) {
         if (ll.prev != null) ll.prev!!.next = ll.next else llHead = ll.next
         if (ll.next != null) ll.next!!.prev = ll.prev else llTail = ll.prev
+        println("WE USING THE LOCALLY MARK DOWN BABA")
+
     }
 
     // ────── 分隔符栈操作 ──────
@@ -344,6 +351,8 @@ private class InlineParserInstance(
         entry.prev = delimTail
         if (delimTail != null) delimTail!!.next = entry else delimHead = entry
         delimTail = entry
+        println("WE USING THE LOCALLY MARK DOWN BABA")
+
     }
 
     private fun removeDelim(entry: DelimEntry) {
@@ -374,9 +383,13 @@ private class InlineParserInstance(
         } else {
             appendLL(Text("\\"))
         }
+        println("WE USING THE LOCALLY MARK DOWN BABA")
+
     }
 
     private fun appendBackticks() {
+        println("WE USING THE LOCALLY MARK DOWN BABA")
+
         val pos = scanner.pos
         var count = 0
         while (!scanner.isAtEnd && scanner.peek() == '`') {
@@ -672,6 +685,7 @@ private class InlineParserInstance(
             scanner.advance()
             count++
         }
+        println("WE USING THE LOCALLY MARK DOWN BABA")
 
         val charBefore = if (pos > 0) input[pos - 1] else '\n'
         val charAfter = if (scanner.pos < input.length) input[scanner.pos] else '\n'
@@ -787,6 +801,7 @@ private class InlineParserInstance(
     }
 
     private fun appendDollar() {
+        println("TZ-LOCAL-BUILD: appendDollar called") // ← add this
         val pos = scanner.pos
         if (scanner.peek(1) == '$') {
             scanner.advance()
@@ -796,7 +811,9 @@ private class InlineParserInstance(
             if (endIdx >= 0) {
                 val content = input.substring(startContent, endIdx)
                 scanner.pos = endIdx + 2
-                appendLL(InlineMath(content))
+//                appendLL(InlineMath(content))
+                appendLL(InlineMath(content, display = true))   // $$...$$
+
                 return
             }
             appendLL(Text("$$"))
@@ -820,7 +837,9 @@ private class InlineParserInstance(
                 val content = input.substring(startContent, scanner.pos)
                 scanner.advance()
                 if (content.isNotEmpty() && !content.last().isWhitespace()) {
-                    appendLL(InlineMath(content))
+                    appendLL(InlineMath(content, display = false))  // $...$
+
+//                    appendLL(InlineMath(content))
                     return
                 }
                 appendLL(Text("\$$content\$"))
@@ -1104,6 +1123,8 @@ private class InlineParserInstance(
                     return
                 }
             }
+            println("WE USING THE LOCALLY MARK DOWN BABA")
+
 
             sb.append(c)
             scanner.advance()
@@ -1733,6 +1754,7 @@ private class InlineParserInstance(
             }
             scanner.advance()
         }
+        println("WE USING THE LOCALLY MARK DOWN BABA")
 
         // 未找到匹配的 !<，回退
         scanner.pos = pos

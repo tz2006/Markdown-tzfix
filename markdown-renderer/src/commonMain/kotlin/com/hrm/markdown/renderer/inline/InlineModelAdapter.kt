@@ -436,8 +436,9 @@ private fun AnnotatedString.Builder.renderInlineMathWidget(
     density: Density,
     textMeasurer: TextMeasurer,
 ) {
+    val isDisplay = widget.display          // ← use display flag
     val trimmedLatex = widget.latex.trim()
-    val fontSize = theme.mathFontSize
+    val fontSize = if (isDisplay) theme.mathFontSize * 1.3f else theme.mathFontSize
     val latexConfig = LatexConfig(
         fontSize = fontSize.sp,
         theme = theme.latexTheme,

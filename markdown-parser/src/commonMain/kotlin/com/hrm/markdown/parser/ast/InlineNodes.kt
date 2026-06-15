@@ -167,8 +167,16 @@ class FootnoteReference(
 /**
  * 行内数学公式：`$...$` 或 `$$...$$`。
  */
+//class InlineMath(
+//    override var literal: String = ""
+//) : LeafNode() {
+//    override fun <R> accept(visitor: NodeVisitor<R>): R = visitor.visitInlineMath(this)
+//}
+
+
 class InlineMath(
-    override var literal: String = ""
+    override var literal: String = "",
+    var display: Boolean = false        // true = $$...$$, false = $...$
 ) : LeafNode() {
     override fun <R> accept(visitor: NodeVisitor<R>): R = visitor.visitInlineMath(this)
 }

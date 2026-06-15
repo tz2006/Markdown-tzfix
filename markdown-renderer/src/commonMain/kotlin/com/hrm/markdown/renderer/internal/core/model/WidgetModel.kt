@@ -14,9 +14,15 @@ data class InlineCodeWidgetModel(
     val code: String,
 ) : InlineWidgetModel
 
+//data class InlineMathWidgetModel(
+//    override val identity: RenderIdentity,
+//    val latex: String,
+//) : InlineWidgetModel
+
 data class InlineMathWidgetModel(
     override val identity: RenderIdentity,
     val latex: String,
+    val display: Boolean = false,       // ← add this
 ) : InlineWidgetModel
 
 data class ImageWidgetModel(
