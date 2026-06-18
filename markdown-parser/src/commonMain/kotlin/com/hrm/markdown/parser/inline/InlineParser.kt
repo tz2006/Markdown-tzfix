@@ -24,7 +24,7 @@ class InlineParser(
 ) : BlockParser.InlineParserInterface {
 
     override fun parseInlines(content: String, parent: ContainerNode) {
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
         if (content.isEmpty()) return
         val parser = InlineParserInstance(content, document, customEmojiMap, enableAsciiEmoticons, enableGfmAutolinks, enableExtendedInline, enableStrikethrough)
         val nodes = parser.parse()
@@ -310,7 +310,7 @@ private class InlineParserInstance(
     // ────── 链表操作 ──────
 
     private fun appendLL(node: Node): LLNode {
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
 
         val ll = LLNode(node)
         ll.prev = llTail
@@ -324,7 +324,7 @@ private class InlineParserInstance(
     }
 
     private fun insertAfterLL(after: LLNode, node: Node): LLNode {
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+       // println("WE USING THE LOCALLY MARK DOWN BABA")
 
         val ll = LLNode(node)
         ll.prev = after
@@ -341,7 +341,7 @@ private class InlineParserInstance(
     private fun removeLL(ll: LLNode) {
         if (ll.prev != null) ll.prev!!.next = ll.next else llHead = ll.next
         if (ll.next != null) ll.next!!.prev = ll.prev else llTail = ll.prev
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
 
     }
 
@@ -351,7 +351,7 @@ private class InlineParserInstance(
         entry.prev = delimTail
         if (delimTail != null) delimTail!!.next = entry else delimHead = entry
         delimTail = entry
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
 
     }
 
@@ -383,12 +383,12 @@ private class InlineParserInstance(
         } else {
             appendLL(Text("\\"))
         }
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+      //  println("WE USING THE LOCALLY MARK DOWN BABA")
 
     }
 
     private fun appendBackticks() {
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
 
         val pos = scanner.pos
         var count = 0
@@ -685,7 +685,7 @@ private class InlineParserInstance(
             scanner.advance()
             count++
         }
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
 
         val charBefore = if (pos > 0) input[pos - 1] else '\n'
         val charAfter = if (scanner.pos < input.length) input[scanner.pos] else '\n'
@@ -1123,7 +1123,7 @@ private class InlineParserInstance(
                     return
                 }
             }
-            println("WE USING THE LOCALLY MARK DOWN BABA")
+         //   println("WE USING THE LOCALLY MARK DOWN BABA")
 
 
             sb.append(c)
@@ -1754,7 +1754,7 @@ private class InlineParserInstance(
             }
             scanner.advance()
         }
-        println("WE USING THE LOCALLY MARK DOWN BABA")
+        //println("WE USING THE LOCALLY MARK DOWN BABA")
 
         // 未找到匹配的 !<，回退
         scanner.pos = pos

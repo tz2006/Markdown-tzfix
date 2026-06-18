@@ -50,9 +50,9 @@ kotlin {
 }
 
 mavenPublishing {
-    publishToMavenCentral(true)
+    publishToMavenCentral(false)
 
-    signAllPublications()
+    //signAllPublications()
 
     coordinates(
         "io.github.huarangmeng",
